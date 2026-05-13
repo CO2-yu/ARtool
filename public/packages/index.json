@@ -2,12 +2,13 @@
   "schemaVersion": 1,
   "packages": [
     {
-      "id": "demo_fence",
-      "name": "Demo Fence",
+      "id": "simple_test",
+      "name": "Simple Test Marker",
       "path": "demo_fence/package.json",
       "marker": {
-        "id": "demo_fence_marker",
+        "id": "simple_test_marker",
         "path": "demo_fence/marker.patt",
+        "image": "demo_fence/marker.png",
         "type": "pattern",
         "physicalSizeMm": 100
       }

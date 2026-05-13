@@ -1,29 +1,17 @@
-{
+﻿{
   "asset": {
     "version": "2.0",
-    "generator": "WebAR MVP placeholder"
+    "generator": "WebAR simple test model"
   },
   "scene": 0,
-  "scenes": [
-    {
-      "nodes": [0]
-    }
-  ],
-  "nodes": [
-    {
-      "mesh": 0,
-      "translation": [0, 0, 0]
-    }
-  ],
+  "scenes": [{ "nodes": [0] }],
+  "nodes": [{ "mesh": 0, "name": "Simple Test Cube" }],
   "meshes": [
     {
-      "name": "DemoMarkerTriangle",
+      "name": "SimpleTestCube",
       "primitives": [
         {
-          "attributes": {
-            "POSITION": 0,
-            "NORMAL": 1
-          },
+          "attributes": { "POSITION": 0, "NORMAL": 1 },
           "indices": 2,
           "material": 0
         }
@@ -32,61 +20,45 @@
   ],
   "materials": [
     {
-      "name": "DemoBlue",
+      "name": "HighVisibilityBlue",
       "pbrMetallicRoughness": {
-        "baseColorFactor": [0.1, 0.45, 0.75, 1],
+        "baseColorFactor": [0.0, 0.45, 1.0, 1.0],
         "metallicFactor": 0,
-        "roughnessFactor": 0.55
-      },
-      "doubleSided": true
+        "roughnessFactor": 0.35
+      }
     }
   ],
   "accessors": [
     {
       "bufferView": 0,
       "componentType": 5126,
-      "count": 3,
+      "count": 24,
       "type": "VEC3",
-      "min": [-0.5, 0, 0],
-      "max": [0.5, 1, 0]
+      "min": [-3, 0, -3],
+      "max": [3, 6, 3]
     },
     {
       "bufferView": 1,
       "componentType": 5126,
-      "count": 3,
+      "count": 24,
       "type": "VEC3"
     },
     {
       "bufferView": 2,
       "componentType": 5123,
-      "count": 3,
+      "count": 36,
       "type": "SCALAR"
     }
   ],
   "bufferViews": [
-    {
-      "buffer": 0,
-      "byteOffset": 0,
-      "byteLength": 36,
-      "target": 34962
-    },
-    {
-      "buffer": 0,
-      "byteOffset": 36,
-      "byteLength": 36,
-      "target": 34962
-    },
-    {
-      "buffer": 0,
-      "byteOffset": 72,
-      "byteLength": 6,
-      "target": 34963
-    }
+    { "buffer": 0, "byteOffset": 0, "byteLength": 288, "target": 34962 },
+    { "buffer": 0, "byteOffset": 288, "byteLength": 288, "target": 34962 },
+    { "buffer": 0, "byteOffset": 576, "byteLength": 72, "target": 34963 }
   ],
   "buffers": [
     {
-      "uri": "data:application/octet-stream;base64,AAAAvwAAAAAAAAAAAAAAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAABAAIAAAA=",
-      "byteLength": 80
+      "uri": "data:application/octet-stream;base64,AABAwAAAAAAAAEBAAABAQAAAAAAAAEBAAABAQAAAwEAAAEBAAABAwAAAwEAAAEBAAABAQAAAAAAAAEDAAABAwAAAAAAAAEDAAABAwAAAwEAAAEDAAABAQAAAwEAAAEDAAABAwAAAAAAAAEDAAABAwAAAAAAAAEBAAABAwAAAwEAAAEBAAABAwAAAwEAAAEDAAABAQAAAAAAAAEBAAABAQAAAAAAAAEDAAABAQAAAwEAAAEDAAABAQAAAwEAAAEBAAABAwAAAwEAAAEBAAABAQAAAwEAAAEBAAABAQAAAwEAAAEDAAABAwAAAwEAAAEDAAABAwAAAAAAAAEDAAABAQAAAAAAAAEDAAABAQAAAAAAAAEBAAABAwAAAAAAAAEBAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAABAAIAAAACAAMABAAFAAYABAAGAAcACAAJAAoACAAKAAsADAANAA4ADAAOAA8AEAARABIAEAASABMAFAAVABYAFAAWABcA",
+      "byteLength": 648
     }
   ]
 }

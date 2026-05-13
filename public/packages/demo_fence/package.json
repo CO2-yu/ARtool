@@ -1,15 +1,16 @@
 {
   "schemaVersion": 1,
-  "id": "demo_fence",
-  "name": "Demo Fence",
-  "description": "展示会向けWebARサンプルモデル",
+  "id": "simple_test",
+  "name": "Simple Test Marker",
+  "description": "Simple high-contrast marker and large blue cube for AR recognition testing.",
   "model": {
     "path": "model.gltf",
     "format": "gltf"
   },
   "marker": {
-    "id": "demo_fence_marker",
+    "id": "simple_test_marker",
     "path": "marker.patt",
+    "image": "marker.png",
     "type": "pattern",
     "physicalSizeMm": 100
   },
@@ -29,7 +30,7 @@
         "value": 0.083333
       },
       "real": {
-        "label": "実寸",
+        "label": "Real",
         "value": 1.0
       }
     }

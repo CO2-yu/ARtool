@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,11 +10,6 @@ const copies = [
     from: findAsset("camera_para.dat") ?? join(arRoot, "data", "data", "camera_para.dat"),
     to: join(root, "public", "data", "camera_para.dat"),
     required: true,
-  },
-  {
-    from: findAsset("patt.hiro") ?? join(arRoot, "data", "data", "patt.hiro"),
-    to: join(root, "public", "packages", "demo_fence", "marker.patt"),
-    required: false,
   },
 ];
 
@@ -48,19 +43,4 @@ function findAsset(filename) {
     }
   }
   return null;
-}
-
-const markerPath = join(root, "public", "packages", "demo_fence", "marker.patt");
-if (existsSync(markerPath)) {
-  const content = readFileSync(markerPath, "utf8");
-  if (content.includes("Placeholder marker pattern")) {
-    writeFileSync(
-      markerPath,
-      [
-        "# Placeholder marker pattern.",
-        "# Run npm install to copy AR.js patt.hiro here, or replace this file with a production 100 mm marker pattern.",
-        "",
-      ].join("\n"),
-    );
-  }
 }

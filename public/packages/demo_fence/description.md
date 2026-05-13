@@ -1,3 +1,9 @@
-# Demo Fence
+# Simple Test Marker
 
-This is a placeholder package for development. Replace `model.gltf` and `marker.patt` with production assets before exhibition deployment.
+AR認識確認用のテストパッケージです。
+
+- マーカー: 単純な非対称白黒ブロック
+- モデル: 視認性を優先した大きめの青い立方体
+- 目的: カメラ、マーカー認識、モデル表示の疎通確認
+
+本番では、製品ごとのマーカー画像、`.patt`、GLBモデルへ差し替えてください。

@@ -38,6 +38,7 @@ export interface PackageIndexEntry {
   marker: {
     id: string;
     path: string;
+    image?: string;
     type: "pattern";
     physicalSizeMm: number;
   };
@@ -55,6 +56,7 @@ export interface ModelPackage {
   marker: {
     id: string;
     path: string;
+    image?: string;
     type: "pattern";
     physicalSizeMm: number;
   };

@@ -29,6 +29,7 @@ public/packages/
       "marker": {
         "id": "fence_a_marker",
         "path": "fence_a/marker.patt",
+        "image": "fence_a/marker.png",
         "type": "pattern",
         "physicalSizeMm": 100
       }
@@ -54,6 +55,7 @@ public/packages/
   "marker": {
     "id": "fence_a_marker",
     "path": "marker.patt",
+    "image": "marker.png",
     "type": "pattern",
     "physicalSizeMm": 100
   },
