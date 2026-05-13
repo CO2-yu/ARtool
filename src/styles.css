@@ -40,7 +40,6 @@ button {
 body > video {
   position: fixed;
   inset: 0;
-  z-index: 0;
   width: 100% !important;
   height: 100% !important;
 }
@@ -49,6 +48,15 @@ body > video {
 .ar-root video,
 body > video {
   object-fit: cover;
+}
+
+.ar-root video,
+body > video {
+  z-index: 0;
+}
+
+.ar-root canvas {
+  z-index: 1;
 }
 
 .topbar {

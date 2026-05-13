@@ -11,6 +11,7 @@ export class ArController {
     private readonly scene: THREE.Scene,
     private readonly camera: THREE.Camera,
     private readonly rendererElement: HTMLCanvasElement,
+    private readonly container: HTMLElement,
   ) {}
 
   async initialize(): Promise<void> {
@@ -25,6 +26,7 @@ export class ArController {
     await new Promise<void>((resolve, reject) => {
       this.source!.init(resolve, reject);
     });
+    this.attachVideoElement();
 
     this.context = new THREEx.ArToolkitContext({
       cameraParametersUrl: "data/camera_para.dat",
@@ -100,6 +102,18 @@ export class ArController {
 
     if (this.context?.arController?.canvas) {
       this.source.copyElementSizeTo(this.context.arController.canvas);
+    }
+  }
+
+  private attachVideoElement(): void {
+    const element = this.source?.domElement;
+    if (!element) {
+      return;
+    }
+
+    element.classList.add("camera-feed");
+    if (element.parentElement !== this.container) {
+      this.container.insertBefore(element, this.rendererElement);
     }
   }
 }

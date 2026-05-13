@@ -59,7 +59,12 @@ async function bootstrap(): Promise<void> {
   );
 
   state.setStatus("WAIT_CAMERA_PERMISSION");
-  arController = new ArController(arRenderer.scene, arRenderer.camera, arRenderer.renderer.domElement);
+  arController = new ArController(
+    arRenderer.scene,
+    arRenderer.camera,
+    arRenderer.renderer.domElement,
+    ui.getArRoot(),
+  );
   await arController.initialize();
   arController.registerMarkers(definitions);
 
