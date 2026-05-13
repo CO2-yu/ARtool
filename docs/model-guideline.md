@@ -1,70 +1,70 @@
-# Model Guideline
+# モデル作成ガイド
 
-## Rhino to GLB Flow
+## RhinoからGLB/glTFへの推奨フロー
 
-Recommended flow:
+推奨手順:
 
-1. Prepare the Rhino model in real-world units.
-2. Remove or simplify unnecessary small details.
-3. Convert repeated geometry to efficient instances where possible.
-4. Export to a DCC tool or converter that can produce clean GLB/glTF.
-5. Bake or assign lightweight PBR materials.
-6. Compress textures before packaging.
-7. Validate scale, origin, rotation, and file size on a real smartphone.
+1. Rhino上で実寸単位のモデルを整理する。
+2. 表示に不要な微細形状を削除または簡略化する。
+3. 繰り返し形状は可能な範囲でインスタンス化または統合する。
+4. GLB/glTFを書き出せるDCCツールまたは変換ツールへ渡す。
+5. 軽量なPBRマテリアルを割り当てる。
+6. テクスチャを圧縮する。
+7. 実機スマートフォンでスケール、原点、回転、ファイルサイズ、FPSを確認する。
 
-## Lightweight Rules
+## 軽量化ルール
 
-Simplify these details unless they are essential to sales explanation:
+以下は、営業説明上どうしても必要な場合を除き、簡略化対象とする。
 
-- Bolts
-- Nuts
-- Screw threads
-- Tiny holes
-- Small metal fittings
-- Hidden backside details
+- ボルト
+- ナット
+- ネジ山
+- 小穴
+- 微細金具
+- 裏面ディテール
 
-Prefer silhouette and major functional shapes over manufacturing-level detail.
+製造レベルの詳細よりも、外形、主要構造、機能が伝わることを優先する。
 
-## Origin Rules
+## 原点ルール
 
-- Put the product's center or intended marker contact point near the model origin.
-- The model should sit naturally above the marker plane after the package transform is applied.
-- Avoid distant geometry from CAD leftovers.
+- 製品の中心、またはマーカー上に置きたい基準点をモデル原点付近に置く。
+- パッケージのtransform適用後、モデルが自然にマーカー平面上へ立ち上がるようにする。
+- CAD由来の不要な遠方ジオメトリを残さない。
 
-## Unit Rules
+## 単位ルール
 
-- Treat the source model as real-world scale.
-- Use meters as the runtime Three.js scale assumption.
-- Package default scale should normally be `0.083333` for 1/12 exhibition display.
-- Real-size mode should use `1.0` internally.
+- 元モデルは実寸スケールとして扱う。
+- ランタイム上のThree.jsではメートル基準を前提とする。
+- 展示会MVPの通常表示は `0.083333`、つまり1/12とする。
+- 実寸表示は内部的に `1.0` として扱えるようにする。
 
-## Rotation Rules
+## 回転ルール
 
-- The model should face the expected visitor viewing direction when the marker card is upright.
-- Correct fixed orientation in `package.json` `transform.rotation`.
-- Use radians in runtime configuration.
+- マーカーカードを正位置で見たとき、来場者に対して自然な向きで表示されるようにする。
+- 固定的な向き補正は `package.json` の `transform.rotation` で行う。
+- ランタイム設定ではラジアンを使用する。
 
-## Texture Rules
+## テクスチャルール
 
-- Use compressed, power-of-two texture dimensions where practical.
-- Avoid unnecessarily large textures for plain industrial surfaces.
-- Prefer a small number of shared materials.
-- Bake complex visual detail into textures when geometry detail is too costly.
+- 可能な範囲で圧縮済みかつ扱いやすい解像度のテクスチャを使う。
+- 単色に近い工業製品面へ過大なテクスチャを使わない。
+- 共有可能なマテリアルはまとめる。
+- 形状で表すと重い細部は、必要に応じてテクスチャへ焼き込む。
 
-## Material Count Policy
+## マテリアル数制限方針
 
-Keep material count low. As a practical MVP target, aim for fewer than 10 materials per package unless there is a clear visual reason.
+マテリアル数は少なく保つ。MVPの実務目安として、明確な視覚的理由がない限り1パッケージあたり10未満を目標とする。
 
-## Net and Mesh Surface Policy
+## ネット表現方針
 
-Represent nets and dense mesh areas with surfaces plus texture/alpha detail where possible. Avoid modeling every wire or intersection unless the close-up sales scenario requires it and smartphone performance has been validated.
+ネットや細かい格子状の部分は、可能な範囲でサーフェス + テクスチャ、またはアルファ表現を使う。すべての線材や交点をジオメトリ化するのは、近接営業説明で必要かつ実機性能確認済みの場合に限る。
 
-## Validation Checklist
+## 検証チェックリスト
 
-- Model opens as GLB.
-- Real-world scale is correct.
-- 1/12 scale is visually stable on a 100 mm marker.
-- Origin and rotation are correct.
-- No hidden CAD debris remains.
-- Animation clips, if any, play correctly.
-- Smartphone FPS remains at or above 24 fps in the target exhibition environment.
+- GLB/glTFとして読み込める。
+- 実寸スケールが正しい。
+- 100mmマーカー上で1/12表示が安定して見える。
+- 原点と回転が正しい。
+- CAD由来の不要オブジェクトが残っていない。
+- アニメーションがある場合、Clipが正しく再生される。
+- 想定展示会環境のスマートフォンで24fps以上を維持できる。

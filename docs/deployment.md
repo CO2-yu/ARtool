@@ -1,32 +1,32 @@
-# Deployment
+# デプロイ
 
 ## GitHub Pages
 
-The MVP is deployed as a static Vite app.
+MVPは静的なViteアプリとしてデプロイする。
 
-Build command:
+ビルドコマンド:
 
 ```bash
 npm run build
 ```
 
-Preview command:
+プレビューコマンド:
 
 ```bash
 npm run preview
 ```
 
-The Vite base path is set to `./` so the app can run from a GitHub Pages project subpath without hardcoded absolute URLs.
+Viteの `base` は `./` に設定する。これにより、GitHub Pagesのプロジェクトサブパス配下でも絶対URLをハードコードせずに動作させる。
 
-## HTTPS Requirement
+## HTTPS要件
 
-Camera access requires HTTPS on deployed environments. GitHub Pages satisfies this requirement when HTTPS is enabled for the repository page.
+カメラアクセスにはHTTPSが必要である。GitHub PagesではリポジトリページのHTTPSを有効化することでこの要件を満たせる。
 
-Local development can use Vite's dev server. Browser behavior for camera access may vary by device and browser.
+ローカル開発ではViteのdev serverを使用する。ただし、スマートフォンやブラウザによってカメラ許可の挙動が異なる可能性があるため、実機検証を必須とする。
 
-## Static Asset Policy
+## 静的アセット方針
 
-Runtime files live under `public/`:
+実行時に読み込むファイルは `public/` 配下に置く。
 
 - `public/app.config.json`
 - `public/packages/index.json`
@@ -34,15 +34,15 @@ Runtime files live under `public/`:
 - `public/packages/<package-id>/model.glb`
 - `public/packages/<package-id>/marker.patt`
 
-The app must not depend on a server API for the MVP.
+MVPではサーバーAPIに依存しない。
 
-## Vercel Migration
+## Vercel移行
 
-The app can move to Vercel as a static deployment because:
+以下の理由により、将来的にVercelへ静的デプロイとして移行できる。
 
-- Build output is static.
-- Asset paths are relative.
-- Capture is local to the browser.
-- Package metadata is loaded as static JSON.
+- ビルド成果物が静的ファイルのみで構成される。
+- アセットパスが相対パスである。
+- 撮影データはブラウザ内で扱い、サーバー保存しない。
+- パッケージメタデータは静的JSONとして読み込む。
 
-No code change should be required if the static output directory is served correctly.
+静的配信先のルートが正しく設定されていれば、原則としてアプリコードの変更は不要とする。

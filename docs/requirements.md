@@ -1,41 +1,42 @@
-# Requirements
+# 要件定義
 
-## Purpose
+## 目的
 
-This WebAR viewer provides a smartphone-first AR experience for exhibitions. A visitor opens the app from a shared QR code, points the camera at a black-frame AR marker card, and sees the corresponding existing 3D product model.
+本アプリは、展示会向けのスマートフォン用WebARビューアである。来場者は共通QRコードからアプリを開き、配布または設置された黒枠ARマーカーカードをカメラで読み取ることで、対応する既存3DモデルをAR表示する。
 
-The MVP prioritizes stable exhibition operation over rich sales features. The structure must still allow future sales-tool expansion without changing the model package format.
+初期MVPでは、将来的な営業ツール化よりも展示会場での安定動作を優先する。ただし、モデルパッケージを追加するだけで拡張できる構造を維持する。
 
-## Core Requirements
+## 基本要件
 
-- Run on GitHub Pages over HTTPS.
-- Use relative paths only for config, packages, and assets.
-- Use TypeScript, Vite, Three.js, AR.js, HTML, and CSS.
-- Use black-frame AR markers, with a standard physical marker card size of 100 mm x 100 mm.
-- Keep the QR code and AR marker separate.
-- Use one marker card per product.
-- Identify models from the AR marker, not from the QR code.
-- Load package metadata and GLB models on demand.
-- Cache loaded GLB scenes by package id.
-- Support up to three simultaneously tracked markers.
-- Ignore newly detected markers when the active marker limit is reached.
-- Do not remove existing models automatically when the limit is exceeded.
-- Hide a model when its marker is lost.
-- Do not use spatially fixed AR after marker loss.
-- Detect AnimationClips from GLB and show animation controls only when clips exist.
-- Auto-play animation when a model appears.
-- Support play and pause in the MVP.
-- Provide still-image capture only.
-- Hide UI while capturing.
-- Show a capture preview and delegate saving to the device/browser.
-- Do not store captured images in the app or on a server.
-- Separate normal mode from debug mode.
+- GitHub Pages上でHTTPS配信して動作する。
+- 設定、パッケージ、アセットは相対パスで管理する。
+- TypeScript、Vite、Three.js、AR.js、HTML、CSSを使用する。
+- AR方式は黒枠ARマーカー方式とする。
+- 標準マーカーサイズは100mm x 100mmとする。
+- QRコードとARマーカーは分離する。
+- 1製品につき1マーカーカードを割り当てる。
+- モデル識別はQRコードではなくARマーカー側で行う。
+- パッケージメタデータとGLB/glTFモデルはオンデマンドで読み込む。
+- 読み込み済みモデルはpackageId単位でキャッシュする。
+- 同時表示マーカー数は最大3とする。
+- 上限超過時は新規認識を無視する。
+- 上限超過時でも既存モデルを勝手に消さない。
+- マーカーを見失った場合は該当モデルを非表示にする。
+- マーカー喪失後の空間固定ARは行わない。
+- GLB/glTF内のAnimationClipを検出し、存在する場合のみアニメーションUIを表示する。
+- モデル表示時にアニメーションを自動再生する。
+- MVPでは再生と停止のみ対応する。
+- 撮影機能は静止画のみ対応する。
+- 撮影時はUIを一時非表示にする。
+- 撮影後はプレビューを表示し、保存は端末またはブラウザ標準機能へ委譲する。
+- アプリ内部保存およびサーバー保存は禁止する。
+- 一般ユーザー向け表示とデバッグモードを分離する。
 
-## Initial State Model
+## 状態要件
 
-The start screen is an overlay state display, not a separate static page.
+起動画面は単なる静的ページではなく、状態表示オーバーレイとして扱う。
 
-Required states:
+必須状態:
 
 - `BOOTING`
 - `LOADING_CONFIG`
@@ -45,66 +46,68 @@ Required states:
 - `LOADING_MODEL`
 - `ERROR`
 
-## Loading Flow
+## 読み込みフロー
 
-At startup:
+起動時:
 
-- Load `app.config.json`.
-- Load `packages/index.json`.
-- Render only lightweight UI.
-- Initialize AR after camera permission becomes available.
+- `app.config.json` を読み込む。
+- `packages/index.json` を読み込む。
+- 軽量UIのみを表示する。
+- カメラ許可後にARを初期化する。
 
-On marker recognition:
+マーカー認識時:
 
-- Load the matching package `package.json`.
+- 対応する `package.json` を読み込む。
 
-On model display:
+モデル表示時:
 
-- Load `model.glb` on demand.
-- Reuse cached model assets for repeated package use.
+- `model.glb` または `model.gltf` をオンデマンドで読み込む。
+- 同一packageIdのモデルはキャッシュを再利用する。
 
-## UI Requirements
+## UI要件
 
-The UI must stay minimal for exhibition use:
+展示会向けのため、UIは最小限にする。
 
-- Logo
-- Title
-- Camera permission guidance
-- Marker guidance
-- Loading display
-- Model name
-- Capture button
-- Animation play/pause button
+必須UI:
 
-Scale controls are hidden in the initial MVP. The internal package format still supports miniature and real-size presets.
+- ロゴ
+- タイトル
+- カメラ許可案内
+- マーカー案内
+- ロード中表示
+- モデル名
+- 撮影ボタン
+- アニメーション再生/停止ボタン
 
-## Error Policy
+初期MVPではスケール変更UIは非表示とする。ただし、パッケージ形式としては1/12表示と実寸表示に対応できる構造を持つ。
 
-User-facing errors must be short and non-technical.
+## エラー方針
 
-Do not show:
+ユーザー向けエラーは短く、非技術的な文言にする。
 
-- Stack traces
-- WebGL internals
-- Internal exception details
+表示禁止:
 
-Developer details go to `console.error`.
+- stack trace
+- WebGL内部詳細
+- 内部例外の詳細
 
-## Acceptance Criteria
+開発者向け詳細は `console.error` に出力する。
 
-- GitHub Pages build works.
-- App runs in HTTPS environments.
-- Smartphone camera can start.
-- 100 mm square marker can be recognized.
-- GLB model is displayed.
-- Initial display scale is 1/12.
-- Up to three markers can be active.
-- Marker loss hides the model.
-- Loading overlay appears.
-- Still-image capture works.
-- Packages are controlled by `package.json`.
-- Models load on demand.
-- Loaded models are cached.
-- AnimationClip presence is detected.
-- Animation can be played and paused.
-- Debug mode is separated from normal user flow.
+## 受け入れ条件
+
+- GitHub Pagesでビルド成果物が動作する。
+- HTTPS環境で動作する。
+- スマートフォンのカメラを起動できる。
+- 100mm角マーカーを認識できる。
+- GLB/glTFモデルを表示できる。
+- 初期表示が1/12スケールになる。
+- 複数マーカーを最大3件まで扱える。
+- マーカー喪失時にモデルが非表示になる。
+- ロード中表示が出る。
+- 静止画撮影ができる。
+- `package.json` ベースでモデルを管理できる。
+- モデルをオンデマンドロードする。
+- 読み込み済みモデルをキャッシュする。
+- AnimationClipの有無を自動検出する。
+- アニメーションの再生/停止ができる。
+- デバッグモードが通常導線から分離されている。

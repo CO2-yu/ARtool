@@ -1,40 +1,40 @@
-# Debug Mode
+# デバッグモード
 
-## Goal
+## 目的
 
-Debug mode exposes developer diagnostics without making them easy for exhibition visitors to open accidentally.
+デバッグモードは、展示会来場者が誤って開きにくい形で、開発者および運用者向けの診断情報を表示するために用意する。
 
-## Entry Methods
+## 起動方法
 
-The app supports layered debug activation:
+以下の方法でデバッグモードを有効化できる。
 
-- Dedicated query parameter: `?debug=1`
-- Persistent local flag: `localStorage.setItem("webar.debug", "1")`
+- 専用query parameter: `?debug=1`
+- 永続的なlocalStorage flag: `localStorage.setItem("webar.debug", "1")`
 
-Disable persistent debug mode:
+永続的なデバッグモードを解除する場合:
 
 ```js
 localStorage.removeItem("webar.debug")
 ```
 
-## Normal User Separation
+## 通常ユーザー導線との分離
 
-Normal QR codes should not include `debug=1`. Debug URLs should be shared only with operators and developers.
+展示会で配布する通常QRコードには `debug=1` を含めない。デバッグURLは、運用者または開発者にのみ共有する。
 
-## Debug Data
+## 表示可能なデバッグ情報
 
-Debug mode may show:
+デバッグモードでは以下を表示できる。
 
 - FPS
-- app state
-- package id
-- marker id
-- marker tracking state
-- package loading state
-- model cache state
-- latest user-facing error
-- developer error detail summary
+- アプリ状態
+- packageId
+- markerId
+- マーカー認識状態
+- パッケージ読み込み状態
+- モデルキャッシュ状態
+- 最新のユーザー向けエラー
+- 開発者向けエラー詳細の要約
 
-## Error Handling
+## エラー扱い
 
-Normal UI shows only short user-facing errors. Debug mode may show more detail, but full stack traces should remain in `console.error` unless actively needed during development.
+通常UIでは短いユーザー向けエラーのみを表示する。デバッグモードでは詳細情報を表示してよいが、完全なstack traceは原則として `console.error` に残す。

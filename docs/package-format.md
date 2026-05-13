@@ -1,8 +1,8 @@
-# Package Format
+# パッケージ形式
 
-## Overview
+## 概要
 
-Each product is managed as a model package. A package contains marker data, GLB model data, display transform settings, animation settings, and UI metadata.
+各製品は「モデルパッケージ」として管理する。パッケージには、マーカー、GLB/glTFモデル、表示変換、アニメーション方針、UI用メタデータを含める。
 
 ```text
 public/packages/
@@ -14,9 +14,9 @@ public/packages/
     └── description.md
 ```
 
-## Package Index
+## パッケージインデックス
 
-`public/packages/index.json` lists packages available to the app.
+`public/packages/index.json` はアプリが扱うパッケージ一覧を持つ。
 
 ```json
 {
@@ -37,7 +37,7 @@ public/packages/
 }
 ```
 
-Paths are relative to `public/packages/index.json`. The index intentionally includes only marker registration metadata so the app can initialize AR without loading every package file or GLB.
+パスは `public/packages/index.json` からの相対パスとする。インデックスにはAR初期化に必要な最小限のマーカー情報だけを持たせる。これにより、起動時に全パッケージの `package.json` やモデルを読み込まずに済む。
 
 ## package.json
 
@@ -46,7 +46,7 @@ Paths are relative to `public/packages/index.json`. The index intentionally incl
   "schemaVersion": 1,
   "id": "fence_a",
   "name": "Fence A",
-  "description": "Exhibition sample model.",
+  "description": "展示会向けサンプルモデル",
   "model": {
     "path": "model.glb",
     "format": "glb"
@@ -73,7 +73,7 @@ Paths are relative to `public/packages/index.json`. The index intentionally incl
         "value": 0.083333
       },
       "real": {
-        "label": "Real",
+        "label": "実寸",
         "value": 1.0
       }
     }
@@ -89,28 +89,28 @@ Paths are relative to `public/packages/index.json`. The index intentionally incl
 }
 ```
 
-## Versioning
+## バージョン管理
 
-`schemaVersion` is required. Breaking schema changes must increment the version and be handled in the package loader.
+`schemaVersion` は必須とする。破壊的な形式変更を行う場合はバージョンを上げ、Package System側で明示的に扱う。
 
-## Scale Policy
+## スケール方針
 
-The default MVP scale is `0.083333` for 1/12 display. The scale object is structured for future linear controls:
+MVPの初期表示スケールは `0.083333`、つまり1/12とする。将来的なリニア変更UIに対応するため、scaleは以下の構造を持つ。
 
-- `default`: initial display scale
-- `min`: lower slider/input bound
-- `max`: upper slider/input bound
-- `step`: linear adjustment unit
-- `presets`: named scale presets
+- `default`: 初期表示スケール
+- `min`: 入力またはスライダーの下限
+- `max`: 入力またはスライダーの上限
+- `step`: 線形調整単位
+- `presets`: 名前付きスケールプリセット
 
-The MVP hides scale controls, but the renderer reads the package scale value.
+MVPではスケールUIを非表示にするが、Rendererは `scale.default` を読み取って表示に反映する。
 
-## Animation Policy
+## アニメーション方針
 
-Animation data lives in the GLB. Package metadata only describes app behavior:
+アニメーションデータ自体はGLB/glTF側に持たせる。パッケージメタデータはアプリ側の振る舞いだけを表す。
 
-- auto-play enabled or disabled
-- optional default clip name
-- future clip switching metadata
+- 自動再生の有無
+- 初期Clip名
+- 将来的なClip切替用メタデータ
 
-If a GLB has no `AnimationClip`, animation UI is hidden.
+GLB/glTFに `AnimationClip` が存在しない場合、アニメーションUIは表示しない。
