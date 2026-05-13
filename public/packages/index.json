@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "packages": [
+    {
+      "id": "demo_fence",
+      "name": "Demo Fence",
+      "path": "demo_fence/package.json",
+      "marker": {
+        "id": "demo_fence_marker",
+        "path": "demo_fence/marker.patt",
+        "type": "pattern",
+        "physicalSizeMm": 100
+      }
+    }
+  ]
+}

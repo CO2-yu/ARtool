@@ -1,0 +1,229 @@
+:root {
+  color: #f6f4ef;
+  background: #0e0f0f;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+  text-rendering: geometricPrecision;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+button {
+  color: inherit;
+  font: inherit;
+}
+
+.shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(155deg, #0e0f0f, #1f2420 58%, #171615);
+}
+
+.ar-root,
+.ar-root canvas,
+.ar-root video,
+body > video {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.ar-root canvas,
+.ar-root video,
+body > video {
+  object-fit: cover;
+}
+
+.topbar {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(14px, env(safe-area-inset-left));
+  right: max(14px, env(safe-area-inset-right));
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 8px;
+  background: rgb(12 13 13 / 76%);
+  backdrop-filter: blur(12px);
+}
+
+.logo {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e9c46a;
+  color: #171615;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.title {
+  max-width: min(64vw, 24rem);
+  overflow: hidden;
+  color: #fffdf8;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-name {
+  max-width: min(64vw, 24rem);
+  overflow: hidden;
+  color: #c7c8c2;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    visibility 160ms ease;
+}
+
+.overlay[hidden] {
+  display: grid;
+  visibility: hidden;
+  opacity: 0;
+}
+
+.status,
+.hint {
+  text-align: center;
+  text-shadow: 0 2px 16px rgb(0 0 0 / 72%);
+}
+
+.status {
+  font-size: clamp(1.2rem, 3.8vw, 1.8rem);
+  font-weight: 800;
+}
+
+.hint {
+  margin-top: 8px;
+  color: #deded8;
+  font-size: 0.95rem;
+}
+
+.controls {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  left: max(16px, env(safe-area-inset-left));
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.icon-button {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 50%;
+  background: rgb(10 11 11 / 76%);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 28%);
+  backdrop-filter: blur(14px);
+  cursor: pointer;
+}
+
+.icon-button:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.capturing .topbar,
+.capturing .controls,
+.capturing .overlay,
+.capturing .debug-panel {
+  visibility: hidden;
+}
+
+.preview {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 12px;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: rgb(0 0 0 / 88%);
+}
+
+.preview[hidden] {
+  display: none;
+}
+
+.preview img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+
+.preview button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 8px;
+  background: #f2eee6;
+  color: #111;
+  font-weight: 700;
+}
+
+.debug-panel {
+  position: fixed;
+  top: max(84px, calc(env(safe-area-inset-top) + 72px));
+  left: max(12px, env(safe-area-inset-left));
+  z-index: 5;
+  width: min(92vw, 360px);
+  max-height: 42vh;
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 76%);
+  color: #8ff0b2;
+  font-size: 0.72rem;
+  white-space: pre-wrap;
+}

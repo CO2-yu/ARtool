@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "app": {
+    "title": "AR Product Viewer",
+    "logoText": "AR",
+    "maxActiveMarkers": 3,
+    "targetFps": 24,
+    "packagesIndex": "packages/index.json"
+  },
+  "ui": {
+    "cameraMessage": "カメラを許可してください",
+    "markerMessage": "マーカーをカメラに映してください",
+    "loadingMessage": "読み込み中",
+    "errorMessage": "表示できませんでした"
+  }
+}
