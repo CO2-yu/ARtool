@@ -69,6 +69,7 @@ async function bootstrap(): Promise<void> {
   );
   await arController.initialize();
   arController.registerMarkers(definitions);
+  arController.layoutFullViewport();
 
   state.setStatus("READY");
   requestAnimationFrame(tick);
