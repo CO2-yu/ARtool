@@ -356,6 +356,9 @@ body > video {
 .capturing .topbar,
 .capturing .controls,
 .capturing .overlay,
+.capturing .ar-info-panel,
+.capturing .scale-panel,
+.capturing .dev-panel,
 .capturing .debug-panel {
   visibility: hidden;
 }

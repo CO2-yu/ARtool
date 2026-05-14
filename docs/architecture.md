@@ -2,43 +2,91 @@
 
 ## 概要
 
-本システムは、既存のAR.js + Three.js構成をメイン入口として維持し、`model-viewer` による通常3Dビューを補助ビューとして追加する。
+本システムは、AR.js + Three.js のマーカーARをメイン入口とし、`model-viewer` による通常3Dビューを補助ビューとして提供する。
 
-責務は以下に分離する。
+起動直後はARモードを表示する。マーカーを認識した場合のみ、マーカー上にGLBモデルをAR表示し、同時に「3Dビューで見る」導線を有効化する。
 
-- AR: メイン入口のマーカーARビュー
-- Viewer: 補助的な通常3Dビュー
-- PackageSystem: パッケージ読み込みとパス解決
-- UI: 画面別UI
-- State: 画面状態と選択状態
+## 責務分離
 
-## 画面責務
+主要責務は次の単位に分ける。
 
-### Viewer
+- AR: カメラ初期化、マーカー認識、markerId管理
+- Renderer: Three.jsシーン、GLBロード、モデルキャッシュ、AR空間表示
+- PackageSystem: `app.config.json`、`packages/index.json`、各`package.json`の読み込み
+- State: アプリ状態、エラー状態
+- UI: Production UI / Development UI の表示切替
+- Viewer: `model-viewer` による通常3D閲覧
 
-`/viewer` が担当する。
+AR処理本体にUI固有の描画ロジックを混ぜない。UIは共通の状態とコールバックを参照し、見た目だけを差し替える。
 
-- `model-viewer` によるGLB表示
-- ピンチ、回転、ズーム、慣性操作
-- アニメーション再生
-- スケールスライダー
-- 製品説明表示
-- `/ar?package=xxx` への遷移
+## UIモード
 
-Viewerはマーカー認識後に選択できる補助画面とする。
+UIモードは `app.config.json` の `uiMode` で切り替える。
 
-### AR
+```json
+{
+  "uiMode": "development"
+}
+```
 
-`/` または `/ar` が担当する。
+指定可能値:
 
-- AR.js + Three.js初期化
-- markerId認識
-- packageId特定
-- マーカー認識時のAR空間表示
-- 情報パネル表示
-- `/viewer?package=xxx` への遷移
+- `development`: 開発中の標準UI。状態、ログ、操作ボタンを表示する。
+- `production`: 来場者向けUI。技術情報を隠し、最小限の案内だけを表示する。
 
-ARはメイン入口として扱う。
+開発中は `development` を標準とする。本番展示時は `production` に切り替える。
+
+実装上は `src/ui/ui-mode.ts` で判定を集約し、以下のUI実装を切り替える。
+
+- `src/ui/development-ui.ts`
+- `src/ui/production-ui.ts`
+
+両UIは同じ `AppUiController` インターフェースを実装する。
+
+## Development UI
+
+Development UI は不具合追跡を優先する。
+
+表示内容:
+
+- 現在のモード
+- camera permission 状態
+- AR初期化状態
+- tracking状態
+- 認識中 markerId
+- selectedPackageId
+- active marker 数
+- active model 数
+- model loading 状態
+- lastSeenAt
+- lostTimeoutMs
+- FPS
+- エラーログ
+- 簡易ログ
+- 「3Dビューで見る」
+- 「AR再初期化」
+- 「キャッシュクリア」
+- 「選択中モデルを非表示」
+
+このUIは開発中の既定表示であり、見た目の完成度より状態観測と操作性を優先する。
+
+## Production UI
+
+Production UI は来場者向けの簡潔表示とする。
+
+表示内容:
+
+- ロゴ
+- タイトル
+- カメラ許可案内
+- マーカー案内
+- ロード中表示
+- モデル名
+- 撮影ボタン
+- アニメーション再生停止
+- マーカー認識後の「3Dビューで見る」
+
+詳細な内部状態、エラー詳細、キャッシュ状態、FPSなどは表示しない。
 
 ## ディレクトリ構成
 
@@ -63,6 +111,9 @@ project-root/
 │   ├── renderer/
 │   ├── state/
 │   ├── ui/
+│   │   ├── development-ui.ts
+│   │   ├── production-ui.ts
+│   │   └── ui-mode.ts
 │   ├── viewer/
 │   ├── main.ts
 │   ├── styles.css
@@ -73,92 +124,33 @@ project-root/
 └── README.md
 ```
 
-## PackageSystem
+## ARフロー
 
-PackageSystemは両画面共通で使う。
+ARは `/` または `/ar` で起動する。
 
-担当:
+1. `app.config.json` を読み込む。
+2. `uiMode` を解決し、UIを生成する。
+3. `packages/index.json` を読み込む。
+4. カメラ許可を要求する。
+5. AR.jsを初期化する。
+6. マーカーを登録する。
+7. markerIdを認識したら対応packageを読み込む。
+8. GLBをオンデマンドロードし、キャッシュする。
+9. マーカー上にモデルを表示する。
+10. 最後に認識したpackageを `selectedPackageId` としてUIへ反映する。
 
-- `app.config.json` 読み込み
-- `packages/index.json` 読み込み
-- `package.json` 読み込み
-- packageIdからpackageへの解決
-- パッケージ内相対パスの解決
-- メタデータキャッシュ
+## Viewerフロー
 
-PackageSystemは `model-viewer` やAR.jsの詳細を知らない。
+Viewerは `/viewer?package=<packageId>` で起動する。
 
-## Viewer構成
+`model-viewer` はnpm importせず、HTML側でCDNからWeb Componentとして読み込む。通常3Dビューは製品閲覧の補助ビューであり、AR起動時の初期画面にはしない。
 
-Viewerは `model-viewer` Web Component を使う。
+## 複数マーカー
 
-初期化手順:
+AR空間では最大3モデルまで表示する。上限を超えた新規マーカーは、いったん無視し、既存モデルを勝手に消さない。
 
-1. `package` query parameterを読む。
-2. PackageSystemで対象パッケージを読む。
-3. `model.path` を相対URL解決する。
-4. `model-viewer.src` に設定する。
-5. `scale` と `ui` 設定からスライダーを初期化する。
-6. 製品名、説明、AR遷移ボタンを表示する。
-
-## AR構成
-
-ARは既存のAR.js + Three.js構成を維持する。
-
-ただし、AR.jsが制御するmarker rootと、表示維持用のdisplay rootを分離する。
-
-- `marker.root`: AR.jsが更新する検出用root
-- `marker.displayRoot`: アプリが表示維持するroot
-
-マーカー検出時は `marker.root.matrixWorld` を `displayRoot` へコピーする。マーカー喪失猶予中は `displayRoot` を最後の姿勢で表示維持する。
-
-## AR情報パネル
-
-ARビューでは、マーカー認識直後にGLBを従来どおりAR表示する。同時に情報パネルを表示し、`model-viewer` への遷移ボタンを有効化する。
-
-情報パネルの状態:
-
-- `selectedPackageId`
-- `selectedMarkerId`
-- `selectedPackage`
-
-最後に認識したマーカーが選択対象になる。
-
-マーカー未認識時は情報パネルを表示しない。
-
-## State
-
-Stateは画面共通のアプリ状態と、画面固有状態を分ける。
-
-共通状態:
-
-- `BOOTING`
-- `LOADING_CONFIG`
-- `READY`
-- `ERROR`
-
-Viewer固有:
-
-- `LOADING_MODEL`
-- `VIEWING`
-
-AR固有:
-
-- `WAIT_CAMERA_PERMISSION`
-- `TRACKING`
-- `LOADING_MODEL`
+操作UIは1つだけ表示し、最後に認識したmarkerIdのpackageIdを `selectedPackageId` として扱う。
 
 ## パス方針
 
-絶対URLはハードコードしない。
-
-- Viteは `base: "./"` を使う。
-- packageIdはquery parameterで渡す。
-- パッケージ内のアセットは `package.json` から相対解決する。
-
-## 既存コードを壊さないための方針
-
-- AR.js + Three.js関連処理はARモードに閉じ込める。
-- PackageSystemは既存を拡張して再利用する。
-- Viewerは新規モジュールとして追加する。
-- `package.json` の互換性を維持し、旧 `model.path` も読めるようにする。
+絶対URLはハードコードしない。ViteはGitHub Pages対応のため `base: "./"` を使用する。パッケージ内アセットは `package.json` から相対パスで解決する。

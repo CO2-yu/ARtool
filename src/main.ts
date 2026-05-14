@@ -106,8 +106,13 @@ async function startArApp(root: HTMLElement): Promise<void> {
     requireUi().getArRoot(),
     config.app.ar,
   );
-  await arController.initialize();
-  cameraPermissionState = "granted";
+  try {
+    await arController.initialize();
+    cameraPermissionState = "granted";
+  } catch (error) {
+    cameraPermissionState = "denied or failed";
+    throw error;
+  }
   arController.registerMarkers(definitions);
   arController.layoutFullViewport();
 
@@ -151,7 +156,7 @@ function tick(): void {
     cameraPermission: cameraPermissionState,
     arInitialized: arController !== null,
     trackingState: activeMarkers.size > 0 ? "tracking" : "waiting",
-    recognizedMarkerId: recognizedMarkers.at(-1) ?? null,
+    recognizedMarkerId: recognizedMarkers.length > 0 ? recognizedMarkers[recognizedMarkers.length - 1] : null,
     selectedPackageId: selectedPackage?.id ?? null,
     activeMarkerCount: activeMarkers.size,
     activeModelCount: arRenderer.getActiveModelCount(),
