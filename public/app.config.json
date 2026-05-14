@@ -4,6 +4,7 @@
     "title": "AR Product Viewer",
     "logoText": "AR",
     "maxActiveMarkers": 3,
+    "lostTimeoutMs": 800,
     "targetFps": 24,
     "packagesIndex": "packages/index.json"
   },

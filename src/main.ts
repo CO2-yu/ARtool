@@ -15,6 +15,7 @@ const fpsCounter = new FpsCounter();
 let arController: ArController | null = null;
 let ui: AppUi;
 let maxActiveMarkers = 3;
+let lostTimeoutMs = 800;
 let currentPackage: ModelPackage | null = null;
 const activeMarkers = new Set<string>();
 
@@ -50,6 +51,7 @@ async function bootstrap(): Promise<void> {
   const config = await packageLoader.loadAppConfig();
   ui.setConfig(config);
   maxActiveMarkers = config.app.maxActiveMarkers;
+  lostTimeoutMs = resolveLostTimeout(config.app.lostTimeoutMs);
 
   const index = await packageLoader.loadPackageIndex(config.app.packagesIndex);
   const definitions = index.packages.map(
@@ -119,15 +121,43 @@ function reconcileMarkers(): void {
     return;
   }
 
+  const now = performance.now();
   for (const marker of arController.getMarkers()) {
-    const isVisible = marker.root.visible;
-    if (isVisible && !marker.visible) {
+    const isDetected = marker.root.visible;
+
+    if (marker.ignoredUntilLost) {
+      if (!isDetected) {
+        marker.ignoredUntilLost = false;
+        marker.visible = false;
+        marker.lostHandled = true;
+      } else {
+        marker.root.visible = false;
+      }
+      continue;
+    }
+
+    if (isDetected) {
+      marker.lastSeenAt = now;
+      marker.lostHandled = false;
+    }
+
+    if (isDetected && !marker.visible) {
       void handleMarkerFound(marker);
     }
-    if (!isVisible && marker.visible) {
+
+    if (!isDetected && marker.visible) {
+      const elapsed = now - marker.lastSeenAt;
+      if (elapsed <= lostTimeoutMs) {
+        marker.root.visible = true;
+        continue;
+      }
+    }
+
+    if (!isDetected && marker.visible && !marker.lostHandled) {
       handleMarkerLost(marker);
     }
-    marker.visible = isVisible;
+
+    marker.visible = isDetected || (marker.visible && now - marker.lastSeenAt <= lostTimeoutMs);
   }
 
   if (activeMarkers.size === 0 && state.getStatus() === "TRACKING") {
@@ -176,6 +206,8 @@ async function handleMarkerFound(marker: MarkerRuntime): Promise<void> {
 
 function handleMarkerLost(marker: MarkerRuntime): void {
   marker.ignoredUntilLost = false;
+  marker.lostHandled = true;
+  marker.visible = false;
   activeMarkers.delete(marker.markerId);
   arRenderer.hideMarkerModel(marker.markerId);
 
@@ -185,6 +217,16 @@ function handleMarkerLost(marker: MarkerRuntime): void {
     ui.setAnimationAvailable(false);
     state.setStatus("READY");
   }
+}
+
+function resolveLostTimeout(value: number | undefined): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return 800;
+  }
+  if (value < 500 || value > 1500) {
+    console.warn(`lostTimeoutMs ${value} is outside the recommended 500ms-1500ms range.`);
+  }
+  return value;
 }
 
 function captureStill(): void {

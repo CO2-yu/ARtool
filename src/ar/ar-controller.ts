@@ -80,6 +80,8 @@ export class ArController {
         packageId: definition.packageId,
         root,
         visible: false,
+        lastSeenAt: 0,
+        lostHandled: true,
         ignoredUntilLost: false,
       });
     }

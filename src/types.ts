@@ -15,6 +15,7 @@ export interface AppConfig {
     title: string;
     logoText: string;
     maxActiveMarkers: number;
+    lostTimeoutMs?: number;
     targetFps: number;
     packagesIndex: string;
   };
@@ -101,6 +102,8 @@ export interface MarkerRuntime {
   packageId: string;
   root: Group;
   visible: boolean;
+  lastSeenAt: number;
+  lostHandled: boolean;
   ignoredUntilLost: boolean;
 }
 
