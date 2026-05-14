@@ -12,6 +12,18 @@
         "type": "pattern",
         "physicalSizeMm": 100
       }
+    },
+    {
+      "id": "demo_LP",
+      "name": "Demo LP",
+      "path": "demo_LP/package.json",
+      "marker": {
+        "id": "demo_LP_marker",
+        "path": "demo_LP/marker.patt",
+        "image": "demo_LP/marker.png",
+        "type": "pattern",
+        "physicalSizeMm": 100
+      }
     }
   ]
 }
