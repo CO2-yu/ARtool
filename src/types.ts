@@ -18,6 +18,7 @@ export interface AppConfig {
     lostTimeoutMs?: number;
     targetFps: number;
     packagesIndex: string;
+    ar?: ArTuningConfig;
   };
   ui: {
     cameraMessage: string;
@@ -25,6 +26,18 @@ export interface AppConfig {
     loadingMessage: string;
     errorMessage: string;
   };
+}
+
+export interface ArTuningConfig {
+  sourceWidth?: number;
+  sourceHeight?: number;
+  canvasWidth?: number;
+  canvasHeight?: number;
+  maxDetectionRate?: number;
+  patternRatio?: number;
+  labelingMode?: "black_region" | "white_region";
+  thresholdMode?: "default" | "manual" | "auto_median" | "auto_otsu" | "auto_adaptive" | "auto_bracketing";
+  threshold?: number;
 }
 
 export interface PackageIndex {

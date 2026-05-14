@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "test_cake",
+  "name": "Test Cake",
+  "description": "Test Cake GLB model package.",
+  "model": {
+    "path": "model.glb",
+    "format": "glb"
+  },
+  "marker": {
+    "id": "test_cake_marker",
+    "path": "marker.patt",
+    "image": "marker.png",
+    "type": "pattern",
+    "physicalSizeMm": 100
+  },
+  "transform": {
+    "position": [0, 0, 0],
+    "rotation": [0, 0, 0],
+    "scale": [1, 1, 1]
+  },
+  "scale": {
+    "default": 0.083333,
+    "min": 0.02,
+    "max": 1.0,
+    "step": 0.01,
+    "presets": {
+      "miniature": {
+        "label": "1/12",
+        "value": 0.083333
+      },
+      "real": {
+        "label": "Real",
+        "value": 1.0
+      }
+    }
+  },
+  "animation": {
+    "autoPlay": false,
+    "defaultClip": null
+  },
+  "ui": {
+    "showScaleControls": false,
+    "thumbnail": "marker.png"
+  }
+}

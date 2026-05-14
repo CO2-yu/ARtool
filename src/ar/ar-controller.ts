@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { THREEx } from "@ar-js-org/ar.js-threejs";
-import type { MarkerDefinition, MarkerRuntime } from "../types";
+import type { ArTuningConfig, MarkerDefinition, MarkerRuntime } from "../types";
 
 export class ArController {
   private source: any = null;
@@ -13,13 +13,19 @@ export class ArController {
     private readonly camera: THREE.Camera,
     private readonly rendererElement: HTMLCanvasElement,
     private readonly container: HTMLElement,
+    private readonly tuning: ArTuningConfig = {},
   ) {}
 
   async initialize(): Promise<void> {
+    const sourceWidth = this.tuning.sourceWidth ?? 1280;
+    const sourceHeight = this.tuning.sourceHeight ?? 720;
+    const canvasWidth = this.tuning.canvasWidth ?? 960;
+    const canvasHeight = this.tuning.canvasHeight ?? 720;
+
     this.source = new THREEx.ArToolkitSource({
       sourceType: "webcam",
-      sourceWidth: 640,
-      sourceHeight: 480,
+      sourceWidth,
+      sourceHeight,
       displayWidth: window.innerWidth,
       displayHeight: window.innerHeight,
     });
@@ -32,15 +38,18 @@ export class ArController {
     this.context = new THREEx.ArToolkitContext({
       cameraParametersUrl: "data/camera_para.dat",
       detectionMode: "mono",
-      maxDetectionRate: 30,
-      canvasWidth: 640,
-      canvasHeight: 480,
+      maxDetectionRate: this.tuning.maxDetectionRate ?? 45,
+      canvasWidth,
+      canvasHeight,
+      patternRatio: this.tuning.patternRatio ?? 0.5,
+      labelingMode: this.tuning.labelingMode ?? "black_region",
     });
 
     await new Promise<void>((resolve) => {
       this.context!.init(() => {
         const projection = this.context!.getProjectionMatrix();
         this.camera.projectionMatrix.copy(projection as THREE.Matrix4);
+        this.applyThresholdTuning();
         resolve();
       });
     });
@@ -186,4 +195,38 @@ export class ArController {
       console.warn(`AR viewport layout mismatch: ${warning}`);
     }
   }
+
+  private applyThresholdTuning(): void {
+    const arController = this.context?.arController;
+    const artoolkit = arController?.artoolkit;
+    if (!arController || !artoolkit) {
+      return;
+    }
+
+    const mode = this.tuning.thresholdMode ?? "auto_otsu";
+    if (mode !== "default") {
+      const modeValue = thresholdModeValue(artoolkit, mode);
+      if (typeof modeValue === "number" && typeof arController.setThresholdMode === "function") {
+        arController.setThresholdMode(modeValue);
+      } else {
+        console.warn(`AR threshold mode is not available: ${mode}`);
+      }
+    }
+
+    if (typeof this.tuning.threshold === "number" && typeof arController.setThreshold === "function") {
+      arController.setThreshold(Math.max(0, Math.min(255, Math.round(this.tuning.threshold))));
+    }
+  }
+}
+
+function thresholdModeValue(artoolkit: Record<string, number>, mode: NonNullable<ArTuningConfig["thresholdMode"]>): number | null {
+  const map: Record<string, string> = {
+    manual: "AR_LABELING_THRESH_MODE_MANUAL",
+    auto_median: "AR_LABELING_THRESH_MODE_AUTO_MEDIAN",
+    auto_otsu: "AR_LABELING_THRESH_MODE_AUTO_OTSU",
+    auto_adaptive: "AR_LABELING_THRESH_MODE_AUTO_ADAPTIVE",
+    auto_bracketing: "AR_LABELING_THRESH_MODE_AUTO_BRACKETING",
+  };
+  const key = map[mode];
+  return key ? artoolkit[key] : null;
 }

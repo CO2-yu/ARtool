@@ -6,7 +6,17 @@
     "maxActiveMarkers": 3,
     "lostTimeoutMs": 800,
     "targetFps": 24,
-    "packagesIndex": "packages/index.json"
+    "packagesIndex": "packages/index.json",
+    "ar": {
+      "sourceWidth": 1280,
+      "sourceHeight": 720,
+      "canvasWidth": 960,
+      "canvasHeight": 720,
+      "maxDetectionRate": 45,
+      "patternRatio": 0.5,
+      "labelingMode": "black_region",
+      "thresholdMode": "auto_otsu"
+    }
   },
   "ui": {
     "cameraMessage": "カメラを許可してください",

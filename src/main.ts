@@ -68,6 +68,7 @@ async function bootstrap(): Promise<void> {
     arRenderer.camera,
     arRenderer.renderer.domElement,
     ui.getArRoot(),
+    config.app.ar,
   );
   await arController.initialize();
   arController.registerMarkers(definitions);

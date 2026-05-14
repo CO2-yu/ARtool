@@ -35,6 +35,19 @@ localStorage.removeItem("webar.debug")
 - 最新のユーザー向けエラー
 - 開発者向けエラー詳細の要約
 
+## AR検出調整
+
+AR検出のしきい値や解像度は `public/app.config.json` の `app.ar` で調整できる。
+
+- `sourceWidth` / `sourceHeight`: カメラ取得の理想解像度
+- `canvasWidth` / `canvasHeight`: AR.js内部の検出用キャンバス解像度
+- `maxDetectionRate`: 1秒あたりの最大検出回数
+- `patternRatio`: 黒枠内のパターン領域比率
+- `labelingMode`: 黒枠マーカーでは通常 `black_region`
+- `thresholdMode`: 2値化しきい値モード
+
+反射で検出が落ちる場合は、まず `thresholdMode: "auto_otsu"` を使う。さらに厳しい環境では `"auto_adaptive"` も試せるが、CPU負荷が高いため常用前に実機FPSを確認する。
+
 ## エラー扱い
 
 通常UIでは短いユーザー向けエラーのみを表示する。デバッグモードでは詳細情報を表示してよいが、完全なstack traceは原則として `console.error` に残す。

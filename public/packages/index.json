@@ -24,6 +24,18 @@
         "type": "pattern",
         "physicalSizeMm": 100
       }
+    },
+    {
+      "id": "test_cake",
+      "name": "Test Cake",
+      "path": "test_cake/package.json",
+      "marker": {
+        "id": "test_cake_marker",
+        "path": "test_cake/marker.patt",
+        "image": "test_cake/marker.png",
+        "type": "pattern",
+        "physicalSizeMm": 100
+      }
     }
   ]
 }
