@@ -9,8 +9,11 @@ export type AppStatus =
   | "LOADING_MODEL"
   | "ERROR";
 
+export type UiMode = "development" | "production";
+
 export interface AppConfig {
   schemaVersion: number;
+  uiMode?: UiMode;
   app: {
     title: string;
     logoText: string;
@@ -140,10 +143,22 @@ export interface MarkerModelInstance {
 export interface DebugSnapshot {
   fps: number;
   status: AppStatus;
+  uiMode?: UiMode;
+  cameraPermission?: string;
+  arInitialized?: boolean;
+  trackingState?: string;
+  recognizedMarkerId?: string | null;
+  selectedPackageId?: string | null;
+  activeMarkerCount?: number;
+  activeModelCount?: number;
+  modelLoading?: boolean;
+  lastSeenAt?: number | null;
+  lostTimeoutMs?: number;
   activeMarkers: string[];
   loadedPackages: string[];
   cachedModels: string[];
   errorDetail: string | null;
+  logs?: string[];
 }
 
 export interface UserError {

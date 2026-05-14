@@ -4,8 +4,8 @@ import { FpsCounter, isDebugMode } from "./debug/debug-mode";
 import { PackageLoader } from "./packages/package-loader";
 import { ArRenderer } from "./renderer/ar-renderer";
 import { AppStateStore } from "./state/app-state";
-import type { MarkerDefinition, MarkerRuntime, ModelPackage } from "./types";
-import { AppUi } from "./ui/app-ui";
+import type { MarkerDefinition, MarkerRuntime, ModelPackage, UiMode } from "./types";
+import { createAppUi, resolveUiMode, type AppUiController } from "./ui/app-ui";
 import { startViewerApp } from "./viewer/viewer-app";
 
 const state = new AppStateStore();
@@ -14,9 +14,11 @@ const arRenderer = new ArRenderer();
 const fpsCounter = new FpsCounter();
 
 let arController: ArController | null = null;
-let ui: AppUi;
+let ui: AppUiController | null = null;
+let uiMode: UiMode = "development";
 let maxActiveMarkers = 3;
 let lostTimeoutMs = 800;
+let cameraPermissionState = "not requested";
 let currentPackage: ModelPackage | null = null;
 let selectedMarker: MarkerRuntime | null = null;
 let selectedPackage: ModelPackage | null = null;
@@ -55,28 +57,33 @@ function isViewerRoute(): boolean {
 async function startArApp(root: HTMLElement): Promise<void> {
   preventViewportGestures();
 
-  ui = new AppUi(
+  state.setStatus("LOADING_CONFIG");
+  const config = await packageLoader.loadAppConfig();
+  uiMode = resolveUiMode(config);
+  ui = createAppUi(
+    uiMode,
     root,
     {
       onCapture: captureStill,
       onToggleAnimation: toggleAnimation,
-      onClosePreview: () => ui.closePreview(),
+      onClosePreview: () => requireUi().closePreview(),
       onScaleChange: applyModelScale,
       onOpenViewer: openSelectedInViewer,
+      onReinitializeAr: reinitializeAr,
+      onClearCache: clearModelCache,
+      onHideSelectedModel: hideSelectedModel,
     },
     isDebugMode(),
   );
+  requireUi().setConfig(config);
   attachPinchScaleHandlers(root);
 
   state.subscribe((status, error) => {
-    ui.setStatus(status, error?.message);
+    requireUi().setStatus(status, error?.message);
   });
 
-  arRenderer.attach(ui.getArRoot());
+  arRenderer.attach(requireUi().getArRoot());
 
-  state.setStatus("LOADING_CONFIG");
-  const config = await packageLoader.loadAppConfig();
-  ui.setConfig(config);
   maxActiveMarkers = config.app.maxActiveMarkers;
   lostTimeoutMs = resolveLostTimeout(config.app.lostTimeoutMs);
   pinchScaleEnabled = config.ui.enablePinchScale !== false;
@@ -91,14 +98,16 @@ async function startArApp(root: HTMLElement): Promise<void> {
   );
 
   state.setStatus("WAIT_CAMERA_PERMISSION");
+  cameraPermissionState = "requesting";
   arController = new ArController(
     arRenderer.scene,
     arRenderer.camera,
     arRenderer.renderer.domElement,
-    ui.getArRoot(),
+    requireUi().getArRoot(),
     config.app.ar,
   );
   await arController.initialize();
+  cameraPermissionState = "granted";
   arController.registerMarkers(definitions);
   arController.layoutFullViewport();
 
@@ -133,13 +142,27 @@ function tick(): void {
   reconcileMarkers();
   arRenderer.render();
 
-  ui.updateDebug({
+  const markers = arController?.getMarkers() ?? [];
+  const recognizedMarkers = markers.filter((marker) => marker.root.visible).map((marker) => marker.markerId);
+  requireUi().updateDebug({
     fps: fpsCounter.tick(),
     status: state.getStatus(),
+    uiMode,
+    cameraPermission: cameraPermissionState,
+    arInitialized: arController !== null,
+    trackingState: activeMarkers.size > 0 ? "tracking" : "waiting",
+    recognizedMarkerId: recognizedMarkers.at(-1) ?? null,
+    selectedPackageId: selectedPackage?.id ?? null,
+    activeMarkerCount: activeMarkers.size,
+    activeModelCount: arRenderer.getActiveModelCount(),
+    modelLoading: state.getStatus() === "LOADING_MODEL",
+    lastSeenAt: selectedMarker?.lastSeenAt ?? null,
+    lostTimeoutMs,
     activeMarkers: [...activeMarkers],
     loadedPackages: packageLoader.getLoadedPackageIds(),
     cachedModels: arRenderer.getCachedModelIds(),
     errorDetail: stringifyDebugError(state.getError()?.detail),
+    logs: requireUi().getLogs?.(),
   });
 
   requestAnimationFrame(tick);
@@ -221,8 +244,8 @@ async function handleMarkerRecognized(marker: MarkerRuntime): Promise<void> {
     selectedPackage = modelPackage;
     currentPackage = modelPackage;
     activeMarkers.add(marker.markerId);
-    ui.setCurrentPackage(modelPackage);
-    ui.showInfoPanel(modelPackage);
+    requireUi().setCurrentPackage(modelPackage);
+    requireUi().showInfoPanel(modelPackage);
     configureScaleFromPackage(modelPackage, isFirstActiveMarker);
     const instance = await arRenderer.ensureModel(marker, modelPackage, packageLoader);
     if (!isMarkerStillDisplayable(marker)) {
@@ -231,8 +254,8 @@ async function handleMarkerRecognized(marker: MarkerRuntime): Promise<void> {
       state.setStatus(activeMarkers.size > 0 ? "TRACKING" : "READY");
       return;
     }
-    ui.setAnimationAvailable(instance.hasAnimation || arRenderer.hasVisibleAnimation());
-    ui.setAnimationPlaying(true);
+    requireUi().setAnimationAvailable(instance.hasAnimation || arRenderer.hasVisibleAnimation());
+    requireUi().setAnimationPlaying(true);
     arRenderer.setAnimationPlaying(true);
     state.setStatus("TRACKING");
   } catch (error) {
@@ -253,13 +276,13 @@ function configureScaleFromPackage(modelPackage: ModelPackage, resetToDefault: b
   scaleStep = modelPackage.scale.step;
   const nextScale = resetToDefault ? modelPackage.scale.default : currentScale;
   applyModelScale(nextScale);
-  ui.configureScale(scaleMin, scaleMax, scaleStep, currentScale);
+  requireUi().configureScale(scaleMin, scaleMax, scaleStep, currentScale);
 }
 
 function applyModelScale(value: number): void {
   currentScale = clamp(value, scaleMin, scaleMax);
   arRenderer.setModelScale(currentScale);
-  ui.setScaleValue(currentScale);
+  requireUi().setScaleValue(currentScale);
 }
 
 function attachPinchScaleHandlers(target: HTMLElement): void {
@@ -327,10 +350,10 @@ function handleMarkerLost(marker: MarkerRuntime): void {
     currentPackage = null;
     selectedMarker = null;
     selectedPackage = null;
-    ui.setCurrentPackage(null);
-    ui.hideInfoPanel();
-    ui.setAnimationAvailable(false);
-    ui.setScaleAvailable(false);
+    requireUi().setCurrentPackage(null);
+    requireUi().hideInfoPanel();
+    requireUi().setAnimationAvailable(false);
+    requireUi().setScaleAvailable(false);
     state.setStatus("READY");
   }
 }
@@ -347,23 +370,65 @@ function resolveLostTimeout(value: number | undefined): number {
 
 function captureStill(): void {
   try {
-    ui.setControlsHidden(true);
+    requireUi().setControlsHidden(true);
     requestAnimationFrame(() => {
       arRenderer.render();
       const dataUrl = arRenderer.captureCompositeDataUrl(arController?.getVideoElement() ?? null);
-      ui.setControlsHidden(false);
-      ui.showPreview(dataUrl);
+      requireUi().setControlsHidden(false);
+      requireUi().showPreview(dataUrl);
     });
   } catch (error) {
-    ui.setControlsHidden(false);
+    requireUi().setControlsHidden(false);
     state.setError("撮影できませんでした", error);
   }
 }
 
 function toggleAnimation(): void {
-  const next = !ui.isAnimationPlaying();
+  const next = !requireUi().isAnimationPlaying();
   arRenderer.setAnimationPlaying(next);
-  ui.setAnimationPlaying(next);
+  requireUi().setAnimationPlaying(next);
+}
+
+function reinitializeAr(): void {
+  requireUi().addLog?.("AR再初期化を実行します。");
+  window.location.reload();
+}
+
+function clearModelCache(): void {
+  arRenderer.clearModelCache();
+  requireUi().addLog?.("モデルキャッシュをクリアしました。");
+}
+
+function hideSelectedModel(): void {
+  if (!selectedMarker) {
+    requireUi().addLog?.("非表示にする選択中モデルがありません。");
+    return;
+  }
+
+  const markerId = selectedMarker.markerId;
+  arRenderer.hideMarkerModel(markerId);
+  activeMarkers.delete(markerId);
+  selectedMarker.displayRoot.visible = false;
+  selectedMarker.visible = false;
+  requireUi().addLog?.(`選択中モデルを非表示にしました: ${markerId}`);
+
+  if (activeMarkers.size === 0) {
+    currentPackage = null;
+    selectedMarker = null;
+    selectedPackage = null;
+    requireUi().setCurrentPackage(null);
+    requireUi().hideInfoPanel();
+    requireUi().setAnimationAvailable(false);
+    requireUi().setScaleAvailable(false);
+    state.setStatus("READY");
+  }
+}
+
+function requireUi(): AppUiController {
+  if (!ui) {
+    throw new Error("UI is not initialized.");
+  }
+  return ui;
 }
 
 function stringifyDebugError(error: unknown): string | null {

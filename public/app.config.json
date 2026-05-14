@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "uiMode": "development",
   "app": {
     "title": "AR Product Viewer",
     "logoText": "AR",

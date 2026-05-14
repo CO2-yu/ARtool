@@ -419,3 +419,164 @@ body > video {
   font-size: 0.72rem;
   white-space: pre-wrap;
 }
+
+.development-shell {
+  background: #090a0a;
+}
+
+.dev-panel {
+  position: fixed;
+  z-index: 5;
+  display: grid;
+  gap: 10px;
+  width: min(92vw, 360px);
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 8px;
+  background: rgb(8 9 9 / 84%);
+  color: #f4f1ea;
+  backdrop-filter: blur(12px);
+}
+
+.dev-panel-left {
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+}
+
+.dev-panel-right {
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  width: min(92vw, 420px);
+}
+
+.dev-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dev-kicker,
+.dev-section-title {
+  color: #9fd9ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.dev-title {
+  color: #fffdf7;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.dev-badge {
+  padding: 4px 8px;
+  border: 1px solid rgb(159 217 255 / 42%);
+  border-radius: 999px;
+  color: #9fd9ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.dev-model {
+  padding: 8px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 8%);
+  color: #e9c46a;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.dev-status .status,
+.dev-status .hint {
+  text-align: left;
+}
+
+.dev-status .status {
+  font-size: 1.02rem;
+}
+
+.dev-grid {
+  display: grid;
+  gap: 4px;
+}
+
+.dev-row {
+  display: grid;
+  grid-template-columns: minmax(112px, 0.8fr) minmax(0, 1fr);
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  font-size: 0.76rem;
+}
+
+.dev-row span {
+  color: #b9bbb5;
+}
+
+.dev-row strong {
+  overflow-wrap: anywhere;
+  color: #f7f2e8;
+  font-weight: 700;
+}
+
+.dev-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.dev-actions button {
+  min-height: 38px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 8px;
+  background: #f2eee6;
+  color: #111;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.dev-actions button:disabled {
+  opacity: 0.45;
+}
+
+.dev-log {
+  min-height: 112px;
+  max-height: 28vh;
+  margin: 0;
+  overflow: auto;
+  padding: 8px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 48%);
+  color: #9ff0b8;
+  font-size: 0.72rem;
+  white-space: pre-wrap;
+}
+
+.dev-error-log {
+  color: #ffb1a4;
+}
+
+.dev-info-panel {
+  bottom: max(154px, calc(env(safe-area-inset-bottom) + 154px));
+}
+
+@media (max-width: 760px) {
+  .dev-panel {
+    width: calc(100vw - 24px);
+    max-height: 34dvh;
+  }
+
+  .dev-panel-right {
+    top: auto;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(86px, calc(env(safe-area-inset-bottom) + 86px));
+  }
+
+  .dev-scale-panel {
+    bottom: max(42vh, calc(env(safe-area-inset-bottom) + 42vh));
+  }
+}

@@ -108,6 +108,14 @@ export class ArRenderer {
     }
   }
 
+  clearModelCache(): void {
+    this.modelCache.clear();
+  }
+
+  getActiveModelCount(): number {
+    return [...this.instances.values()].filter((instance) => instance.root.visible).length;
+  }
+
   setModelScale(value: number): void {
     this.modelScale = value;
     for (const instance of this.instances.values()) {
