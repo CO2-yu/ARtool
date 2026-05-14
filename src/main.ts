@@ -123,7 +123,7 @@ function reconcileMarkers(): void {
 
   const now = performance.now();
   for (const marker of arController.getMarkers()) {
-    const isDetected = marker.root.visible;
+    const isDetected = marker.detected;
 
     if (marker.ignoredUntilLost) {
       if (!isDetected) {
@@ -158,6 +158,9 @@ function reconcileMarkers(): void {
     }
 
     marker.visible = isDetected || (marker.visible && now - marker.lastSeenAt <= lostTimeoutMs);
+    if (!marker.visible) {
+      marker.root.visible = false;
+    }
   }
 
   if (activeMarkers.size === 0 && state.getStatus() === "TRACKING") {
@@ -181,7 +184,7 @@ async function handleMarkerFound(marker: MarkerRuntime): Promise<void> {
   try {
     state.setStatus("LOADING_MODEL");
     const modelPackage = await packageLoader.loadPackage(marker.packageId);
-    if (!marker.root.visible) {
+    if (!isMarkerStillDisplayable(marker)) {
       activeMarkers.delete(marker.markerId);
       state.setStatus(activeMarkers.size > 0 ? "TRACKING" : "READY");
       return;
@@ -189,7 +192,7 @@ async function handleMarkerFound(marker: MarkerRuntime): Promise<void> {
     currentPackage = modelPackage;
     ui.setCurrentPackage(modelPackage);
     const instance = await arRenderer.ensureModel(marker, modelPackage, packageLoader);
-    if (!marker.root.visible) {
+    if (!isMarkerStillDisplayable(marker)) {
       arRenderer.hideMarkerModel(marker.markerId);
       activeMarkers.delete(marker.markerId);
       state.setStatus(activeMarkers.size > 0 ? "TRACKING" : "READY");
@@ -202,6 +205,10 @@ async function handleMarkerFound(marker: MarkerRuntime): Promise<void> {
   } catch (error) {
     state.setError("モデルを読み込めませんでした", error);
   }
+}
+
+function isMarkerStillDisplayable(marker: MarkerRuntime): boolean {
+  return marker.detected || performance.now() - marker.lastSeenAt <= lostTimeoutMs;
 }
 
 function handleMarkerLost(marker: MarkerRuntime): void {

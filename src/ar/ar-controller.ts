@@ -75,15 +75,25 @@ export class ArController {
         size: 1,
       });
 
-      this.markers.set(definition.markerId, {
+      const marker: MarkerRuntime = {
         markerId: definition.markerId,
         packageId: definition.packageId,
         root,
+        detected: false,
         visible: false,
         lastSeenAt: 0,
         lostHandled: true,
         ignoredUntilLost: false,
+      };
+
+      root.addEventListener("markerFound", () => {
+        marker.detected = true;
       });
+      root.addEventListener("markerLost", () => {
+        marker.detected = false;
+      });
+
+      this.markers.set(definition.markerId, marker);
     }
 
     return [...this.markers.values()];

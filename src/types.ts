@@ -101,6 +101,7 @@ export interface MarkerRuntime {
   markerId: string;
   packageId: string;
   root: Group;
+  detected: boolean;
   visible: boolean;
   lastSeenAt: number;
   lostHandled: boolean;
