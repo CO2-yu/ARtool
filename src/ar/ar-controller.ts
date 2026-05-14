@@ -106,13 +106,6 @@ export class ArController {
     this.applyCoverStyle(this.source?.domElement ?? null, 0);
     this.applyCoverStyle(this.rendererElement, 1);
 
-    const arCanvas = this.context?.arController?.canvas;
-    if (arCanvas) {
-      this.applyCoverStyle(arCanvas, 1);
-      arCanvas.width = this.rendererElement.width;
-      arCanvas.height = this.rendererElement.height;
-    }
-
     this.verifyViewportSync();
   }
 
@@ -154,17 +147,14 @@ export class ArController {
   }
 
   private verifyViewportSync(): void {
-    const arCanvas = this.context?.arController?.canvas as HTMLCanvasElement | undefined;
     const video = this.source?.domElement as HTMLElement | undefined;
     const rendererRect = this.rendererElement.getBoundingClientRect();
     const videoRect = video?.getBoundingClientRect();
 
     const warnings: string[] = [];
-    if (arCanvas && (arCanvas.width !== this.rendererElement.width || arCanvas.height !== this.rendererElement.height)) {
-      warnings.push(
-        `AR.js canvas buffer ${arCanvas.width}x${arCanvas.height} != renderer buffer ${this.rendererElement.width}x${this.rendererElement.height}`,
-      );
-    }
+    // AR.js uses this internal canvas for marker detection. Its buffer size is
+    // allowed to differ from the Three.js render buffer; forcing it to match can
+    // break marker recognition on mobile.
     if (Math.round(rendererRect.width) !== window.innerWidth || Math.round(rendererRect.height) !== window.innerHeight) {
       warnings.push(
         `renderer CSS ${Math.round(rendererRect.width)}x${Math.round(rendererRect.height)} != viewport ${window.innerWidth}x${window.innerHeight}`,
