@@ -69,6 +69,12 @@ export class ArController {
       root.visible = false;
       this.scene.add(root);
 
+      const displayRoot = new THREE.Group();
+      displayRoot.name = `display:${definition.markerId}`;
+      displayRoot.matrixAutoUpdate = false;
+      displayRoot.visible = false;
+      this.scene.add(displayRoot);
+
       new THREEx.ArMarkerControls(this.context, root, {
         type: "pattern",
         patternUrl: definition.patternUrl,
@@ -79,19 +85,12 @@ export class ArController {
         markerId: definition.markerId,
         packageId: definition.packageId,
         root,
-        detected: false,
+        displayRoot,
         visible: false,
         lastSeenAt: 0,
         lostHandled: true,
         ignoredUntilLost: false,
       };
-
-      root.addEventListener("markerFound", () => {
-        marker.detected = true;
-      });
-      root.addEventListener("markerLost", () => {
-        marker.detected = false;
-      });
 
       this.markers.set(definition.markerId, marker);
     }

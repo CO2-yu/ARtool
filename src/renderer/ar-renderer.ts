@@ -68,7 +68,8 @@ export class ArRenderer {
     const root = clone(asset.source);
     root.name = `model:${modelPackage.id}:${marker.markerId}`;
     applyPackageTransform(root, modelPackage);
-    marker.root.add(root);
+    marker.displayRoot.add(root);
+    marker.displayRoot.visible = true;
 
     const mixer = asset.animations.length > 0 ? new THREE.AnimationMixer(root) : null;
     if (mixer) {

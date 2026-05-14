@@ -123,7 +123,7 @@ function reconcileMarkers(): void {
 
   const now = performance.now();
   for (const marker of arController.getMarkers()) {
-    const isDetected = marker.detected;
+    const isDetected = marker.root.visible;
 
     if (marker.ignoredUntilLost) {
       if (!isDetected) {
@@ -139,6 +139,7 @@ function reconcileMarkers(): void {
     if (isDetected) {
       marker.lastSeenAt = now;
       marker.lostHandled = false;
+      syncDisplayRoot(marker);
     }
 
     if (isDetected && !marker.visible) {
@@ -148,7 +149,7 @@ function reconcileMarkers(): void {
     if (!isDetected && marker.visible) {
       const elapsed = now - marker.lastSeenAt;
       if (elapsed <= lostTimeoutMs) {
-        marker.root.visible = true;
+        marker.displayRoot.visible = true;
         continue;
       }
     }
@@ -159,7 +160,7 @@ function reconcileMarkers(): void {
 
     marker.visible = isDetected || (marker.visible && now - marker.lastSeenAt <= lostTimeoutMs);
     if (!marker.visible) {
-      marker.root.visible = false;
+      marker.displayRoot.visible = false;
     }
   }
 
@@ -208,13 +209,21 @@ async function handleMarkerFound(marker: MarkerRuntime): Promise<void> {
 }
 
 function isMarkerStillDisplayable(marker: MarkerRuntime): boolean {
-  return marker.detected || performance.now() - marker.lastSeenAt <= lostTimeoutMs;
+  return marker.root.visible || performance.now() - marker.lastSeenAt <= lostTimeoutMs;
+}
+
+function syncDisplayRoot(marker: MarkerRuntime): void {
+  marker.root.updateMatrixWorld(true);
+  marker.displayRoot.matrix.copy(marker.root.matrixWorld);
+  marker.displayRoot.matrixWorld.copy(marker.root.matrixWorld);
+  marker.displayRoot.visible = true;
 }
 
 function handleMarkerLost(marker: MarkerRuntime): void {
   marker.ignoredUntilLost = false;
   marker.lostHandled = true;
   marker.visible = false;
+  marker.displayRoot.visible = false;
   activeMarkers.delete(marker.markerId);
   arRenderer.hideMarkerModel(marker.markerId);
 
