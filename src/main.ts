@@ -6,6 +6,7 @@ import { ArRenderer } from "./renderer/ar-renderer";
 import { AppStateStore } from "./state/app-state";
 import type { MarkerDefinition, MarkerRuntime, ModelPackage } from "./types";
 import { AppUi } from "./ui/app-ui";
+import { startViewerApp } from "./viewer/viewer-app";
 
 const state = new AppStateStore();
 const packageLoader = new PackageLoader();
@@ -17,6 +18,15 @@ let ui: AppUi;
 let maxActiveMarkers = 3;
 let lostTimeoutMs = 800;
 let currentPackage: ModelPackage | null = null;
+let selectedMarker: MarkerRuntime | null = null;
+let selectedPackage: ModelPackage | null = null;
+let scaleMin = 0.02;
+let scaleMax = 1;
+let scaleStep = 0.01;
+let currentScale = 1;
+let pinchScaleEnabled = true;
+let pinchStartDistance: number | null = null;
+let pinchStartScale = 1;
 const activeMarkers = new Set<string>();
 
 bootstrap().catch((error: unknown) => {
@@ -24,12 +34,26 @@ bootstrap().catch((error: unknown) => {
 });
 
 async function bootstrap(): Promise<void> {
-  preventViewportGestures();
-
   const root = document.querySelector<HTMLElement>("#app");
   if (!root) {
     throw new Error("Missing #app root.");
   }
+
+  if (isViewerRoute()) {
+    await startViewerApp(root);
+    return;
+  }
+
+  await startArApp(root);
+}
+
+function isViewerRoute(): boolean {
+  const path = window.location.pathname.replace(/\/+$/, "");
+  return path.endsWith("/viewer") || !path.endsWith("/ar");
+}
+
+async function startArApp(root: HTMLElement): Promise<void> {
+  preventViewportGestures();
 
   ui = new AppUi(
     root,
@@ -37,9 +61,13 @@ async function bootstrap(): Promise<void> {
       onCapture: captureStill,
       onToggleAnimation: toggleAnimation,
       onClosePreview: () => ui.closePreview(),
+      onScaleChange: applyModelScale,
+      onOpenViewer: openSelectedInViewer,
+      onShowInAr: showSelectedInAr,
     },
     isDebugMode(),
   );
+  attachPinchScaleHandlers(root);
 
   state.subscribe((status, error) => {
     ui.setStatus(status, error?.message);
@@ -52,6 +80,7 @@ async function bootstrap(): Promise<void> {
   ui.setConfig(config);
   maxActiveMarkers = config.app.maxActiveMarkers;
   lostTimeoutMs = resolveLostTimeout(config.app.lostTimeoutMs);
+  pinchScaleEnabled = config.ui.enablePinchScale !== false;
 
   const index = await packageLoader.loadPackageIndex(config.app.packagesIndex);
   const definitions = index.packages.map(
@@ -144,7 +173,7 @@ function reconcileMarkers(): void {
     }
 
     if (isDetected && !marker.visible) {
-      void handleMarkerFound(marker);
+      void handleMarkerRecognized(marker);
     }
 
     if (!isDetected && marker.visible) {
@@ -170,10 +199,34 @@ function reconcileMarkers(): void {
   }
 }
 
-async function handleMarkerFound(marker: MarkerRuntime): Promise<void> {
+async function handleMarkerRecognized(marker: MarkerRuntime): Promise<void> {
   if (marker.ignoredUntilLost) {
     return;
   }
+
+  try {
+    const modelPackage = await packageLoader.loadPackage(marker.packageId);
+    if (!isMarkerStillDisplayable(marker)) {
+      state.setStatus(activeMarkers.size > 0 ? "TRACKING" : "READY");
+      return;
+    }
+    selectedMarker = marker;
+    selectedPackage = modelPackage;
+    ui.setCurrentPackage(modelPackage);
+    ui.showInfoPanel(modelPackage);
+    state.setStatus("TRACKING");
+  } catch (error) {
+    state.setError("モデル情報を読み込めませんでした", error);
+  }
+}
+
+async function showSelectedInAr(): Promise<void> {
+  if (!selectedMarker || !selectedPackage) {
+    return;
+  }
+
+  const marker = selectedMarker;
+  const modelPackage = selectedPackage;
 
   if (!activeMarkers.has(marker.markerId) && activeMarkers.size >= maxActiveMarkers) {
     marker.ignoredUntilLost = true;
@@ -181,18 +234,14 @@ async function handleMarkerFound(marker: MarkerRuntime): Promise<void> {
     return;
   }
 
+  const isFirstActiveMarker = activeMarkers.size === 0;
   activeMarkers.add(marker.markerId);
 
   try {
     state.setStatus("LOADING_MODEL");
-    const modelPackage = await packageLoader.loadPackage(marker.packageId);
-    if (!isMarkerStillDisplayable(marker)) {
-      activeMarkers.delete(marker.markerId);
-      state.setStatus(activeMarkers.size > 0 ? "TRACKING" : "READY");
-      return;
-    }
     currentPackage = modelPackage;
     ui.setCurrentPackage(modelPackage);
+    configureScaleFromPackage(modelPackage, isFirstActiveMarker);
     const instance = await arRenderer.ensureModel(marker, modelPackage, packageLoader);
     if (!isMarkerStillDisplayable(marker)) {
       arRenderer.hideMarkerModel(marker.markerId);
@@ -207,6 +256,70 @@ async function handleMarkerFound(marker: MarkerRuntime): Promise<void> {
   } catch (error) {
     state.setError("モデルを読み込めませんでした", error);
   }
+}
+
+function openSelectedInViewer(): void {
+  if (!selectedPackage) {
+    return;
+  }
+  window.location.href = `../viewer/?package=${encodeURIComponent(selectedPackage.id)}`;
+}
+
+function configureScaleFromPackage(modelPackage: ModelPackage, resetToDefault: boolean): void {
+  scaleMin = modelPackage.scale.min;
+  scaleMax = modelPackage.scale.max;
+  scaleStep = modelPackage.scale.step;
+  const nextScale = resetToDefault ? modelPackage.scale.default : currentScale;
+  applyModelScale(nextScale);
+  ui.configureScale(scaleMin, scaleMax, scaleStep, currentScale);
+}
+
+function applyModelScale(value: number): void {
+  currentScale = clamp(value, scaleMin, scaleMax);
+  arRenderer.setModelScale(currentScale);
+  ui.setScaleValue(currentScale);
+}
+
+function attachPinchScaleHandlers(target: HTMLElement): void {
+  target.addEventListener(
+    "touchstart",
+    (event) => {
+      if (!pinchScaleEnabled || event.touches.length !== 2) {
+        return;
+      }
+      event.preventDefault();
+      pinchStartDistance = touchDistance(event.touches[0], event.touches[1]);
+      pinchStartScale = currentScale;
+    },
+    { passive: false },
+  );
+
+  target.addEventListener(
+    "touchmove",
+    (event) => {
+      if (!pinchScaleEnabled || event.touches.length !== 2 || !pinchStartDistance) {
+        return;
+      }
+      event.preventDefault();
+      const distance = touchDistance(event.touches[0], event.touches[1]);
+      applyModelScale(pinchStartScale * (distance / pinchStartDistance));
+    },
+    { passive: false },
+  );
+
+  const resetPinch = () => {
+    pinchStartDistance = null;
+  };
+  target.addEventListener("touchend", resetPinch, { passive: false });
+  target.addEventListener("touchcancel", resetPinch, { passive: false });
+}
+
+function touchDistance(a: Touch, b: Touch): number {
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 function isMarkerStillDisplayable(marker: MarkerRuntime): boolean {
@@ -230,8 +343,12 @@ function handleMarkerLost(marker: MarkerRuntime): void {
 
   if (activeMarkers.size === 0) {
     currentPackage = null;
+    selectedMarker = null;
+    selectedPackage = null;
     ui.setCurrentPackage(null);
+    ui.hideInfoPanel();
     ui.setAnimationAvailable(false);
+    ui.setScaleAvailable(false);
     state.setStatus("READY");
   }
 }

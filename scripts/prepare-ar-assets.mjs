@@ -11,6 +11,21 @@ const copies = [
     to: join(root, "public", "data", "camera_para.dat"),
     required: true,
   },
+  {
+    from: join(root, "node_modules", "three", "examples", "jsm", "libs", "draco", "gltf", "draco_decoder.js"),
+    to: join(root, "public", "draco", "draco_decoder.js"),
+    required: true,
+  },
+  {
+    from: join(root, "node_modules", "three", "examples", "jsm", "libs", "draco", "gltf", "draco_decoder.wasm"),
+    to: join(root, "public", "draco", "draco_decoder.wasm"),
+    required: true,
+  },
+  {
+    from: join(root, "node_modules", "three", "examples", "jsm", "libs", "draco", "gltf", "draco_wasm_wrapper.js"),
+    to: join(root, "public", "draco", "draco_wasm_wrapper.js"),
+    required: true,
+  },
 ];
 
 for (const item of copies) {

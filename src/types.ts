@@ -25,6 +25,7 @@ export interface AppConfig {
     markerMessage: string;
     loadingMessage: string;
     errorMessage: string;
+    enablePinchScale?: boolean;
   };
 }
 
@@ -93,6 +94,8 @@ export interface ModelPackage {
   ui: {
     showScaleControls: boolean;
     thumbnail: string;
+    enablePinchScale?: boolean;
+    showScaleSlider?: boolean;
   };
   basePath: string;
 }

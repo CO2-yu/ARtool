@@ -5,6 +5,9 @@ interface UiCallbacks {
   onCapture: () => void;
   onToggleAnimation: () => void;
   onClosePreview: () => void;
+  onScaleChange: (value: number) => void;
+  onOpenViewer: () => void;
+  onShowInAr: () => void;
 }
 
 export class AppUi {
@@ -15,6 +18,12 @@ export class AppUi {
   private readonly modelName: HTMLElement;
   private readonly captureButton: HTMLButtonElement;
   private readonly animationButton: HTMLButtonElement;
+  private readonly scalePanel: HTMLElement;
+  private readonly scaleSlider: HTMLInputElement;
+  private readonly scaleValue: HTMLElement;
+  private readonly infoPanel: HTMLElement;
+  private readonly infoName: HTMLElement;
+  private readonly infoDescription: HTMLElement;
   private readonly preview: HTMLElement;
   private readonly previewImage: HTMLImageElement;
   private readonly previewDownload: HTMLAnchorElement;
@@ -38,6 +47,23 @@ export class AppUi {
         <section class="overlay" data-role="overlay">
           <div class="status" data-role="status">起動中</div>
           <div class="hint" data-role="hint">カメラを準備しています</div>
+        </section>
+        <section class="scale-panel" data-role="scale-panel" hidden>
+          <div class="scale-header">
+            <span>倍率</span>
+            <span data-role="scale-value">1.00x</span>
+          </div>
+          <input data-role="scale-slider" type="range" min="0.02" max="1" step="0.01" value="0.083333" aria-label="モデル倍率" />
+        </section>
+        <section class="ar-info-panel" data-role="ar-info-panel" hidden>
+          <div>
+            <div class="ar-info-title" data-role="ar-info-name">-</div>
+            <div class="ar-info-description" data-role="ar-info-description"></div>
+          </div>
+          <div class="ar-info-actions">
+            <button type="button" data-role="open-viewer">3Dビューで見る</button>
+            <button type="button" data-role="show-in-ar">ARで表示する</button>
+          </div>
         </section>
         <nav class="controls" aria-label="AR controls">
           <button class="icon-button" data-role="capture" type="button" title="撮影" aria-label="撮影">
@@ -65,6 +91,12 @@ export class AppUi {
     this.modelName = this.require("[data-role='model-name']");
     this.captureButton = this.requireButton("[data-role='capture']");
     this.animationButton = this.requireButton("[data-role='animation']");
+    this.scalePanel = this.require("[data-role='scale-panel']");
+    this.scaleSlider = this.require<HTMLInputElement>("[data-role='scale-slider']");
+    this.scaleValue = this.require("[data-role='scale-value']");
+    this.infoPanel = this.require("[data-role='ar-info-panel']");
+    this.infoName = this.require("[data-role='ar-info-name']");
+    this.infoDescription = this.require("[data-role='ar-info-description']");
     this.preview = this.require("[data-role='preview']");
     this.previewImage = this.require("[data-role='preview-image']");
     this.previewDownload = this.require("[data-role='download-preview']");
@@ -72,8 +104,16 @@ export class AppUi {
 
     this.captureButton.addEventListener("click", callbacks.onCapture);
     this.animationButton.addEventListener("click", callbacks.onToggleAnimation);
+    this.scaleSlider.addEventListener("input", () => callbacks.onScaleChange(Number(this.scaleSlider.value)));
+    this.requireButton("[data-role='open-viewer']").addEventListener("click", callbacks.onOpenViewer);
+    this.requireButton("[data-role='show-in-ar']").addEventListener("click", callbacks.onShowInAr);
     this.requireButton("[data-role='close-preview']").addEventListener("click", callbacks.onClosePreview);
     this.setAnimationAvailable(false);
+    this.setScaleAvailable(false);
+  }
+
+  getRoot(): HTMLElement {
+    return this.root;
   }
 
   getArRoot(): HTMLElement {
@@ -104,6 +144,34 @@ export class AppUi {
 
   setCurrentPackage(modelPackage: ModelPackage | null): void {
     this.modelName.textContent = modelPackage?.name ?? "-";
+  }
+
+  showInfoPanel(modelPackage: ModelPackage): void {
+    this.infoName.textContent = modelPackage.name;
+    this.infoDescription.textContent = modelPackage.description;
+    this.infoPanel.hidden = false;
+  }
+
+  hideInfoPanel(): void {
+    this.infoPanel.hidden = true;
+  }
+
+  configureScale(min: number, max: number, step: number, value: number): void {
+    this.scaleSlider.min = String(min);
+    this.scaleSlider.max = String(max);
+    this.scaleSlider.step = String(step);
+    this.setScaleValue(value);
+    this.setScaleAvailable(true);
+  }
+
+  setScaleAvailable(available: boolean): void {
+    this.scalePanel.hidden = !available;
+    this.scaleSlider.disabled = !available;
+  }
+
+  setScaleValue(value: number): void {
+    this.scaleSlider.value = String(value);
+    this.scaleValue.textContent = `${value.toFixed(2)}x`;
   }
 
   setAnimationAvailable(available: boolean): void {

@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { LoadedModelAsset, MarkerModelInstance, MarkerRuntime, ModelPackage } from "../types";
@@ -10,14 +11,19 @@ export class ArRenderer {
   readonly renderer: THREE.WebGLRenderer;
 
   private readonly clock = new THREE.Clock();
+  private readonly dracoLoader = new DRACOLoader();
   private readonly loader = new GLTFLoader();
   private readonly modelCache = new Map<string, Promise<LoadedModelAsset>>();
   private readonly instances = new Map<string, MarkerModelInstance>();
   private readonly mixers = new Map<string, THREE.AnimationMixer>();
   private readonly actions = new Map<string, THREE.AnimationAction[]>();
   private animationEnabled = true;
+  private modelScale = 1;
 
   constructor() {
+    this.dracoLoader.setDecoderPath("draco/");
+    this.loader.setDRACOLoader(this.dracoLoader);
+
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -68,6 +74,7 @@ export class ArRenderer {
     const root = clone(asset.source);
     root.name = `model:${modelPackage.id}:${marker.markerId}`;
     applyPackageTransform(root, modelPackage);
+    root.scale.setScalar(this.modelScale);
     marker.displayRoot.add(root);
     marker.displayRoot.visible = true;
 
@@ -98,6 +105,13 @@ export class ArRenderer {
     const instance = this.instances.get(markerId);
     if (instance) {
       instance.root.visible = false;
+    }
+  }
+
+  setModelScale(value: number): void {
+    this.modelScale = value;
+    for (const instance of this.instances.values()) {
+      instance.root.scale.setScalar(value);
     }
   }
 

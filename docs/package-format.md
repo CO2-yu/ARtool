@@ -2,21 +2,24 @@
 
 ## 概要
 
-各製品は「モデルパッケージ」として管理する。パッケージには、マーカー、GLB/glTFモデル、表示変換、アニメーション方針、UI用メタデータを含める。
+`package.json` は通常3DビューとARビュー共通の単一データソースである。モデル、マーカー、表示変換、スケール、アニメーション、UI設定を1つのパッケージで管理する。
+
+## パッケージ構成
 
 ```text
-public/packages/
-└── fence_a/
-    ├── model.glb
-    ├── marker.patt
-    ├── thumbnail.jpg
-    ├── package.json
-    └── description.md
+public/packages/<package-id>/
+├── model.glb
+├── marker.patt
+├── marker.png
+├── marker-print.png
+├── thumbnail.jpg
+├── package.json
+└── description.md
 ```
 
 ## パッケージインデックス
 
-`public/packages/index.json` はアプリが扱うパッケージ一覧を持つ。
+`public/packages/index.json` はAR初期化に必要な最小限のマーカー情報と、パッケージJSONへのパスを持つ。
 
 ```json
 {
@@ -37,8 +40,6 @@ public/packages/
   ]
 }
 ```
-
-パスは `public/packages/index.json` からの相対パスとする。インデックスにはAR初期化に必要な最小限のマーカー情報だけを持たせる。これにより、起動時に全パッケージの `package.json` やモデルを読み込まずに済む。
 
 ## package.json
 
@@ -85,34 +86,53 @@ public/packages/
     "defaultClip": null
   },
   "ui": {
-    "showScaleControls": false,
-    "thumbnail": "thumbnail.jpg"
+    "thumbnail": "thumbnail.jpg",
+    "enablePinchScale": true,
+    "showScaleSlider": true
   }
 }
 ```
 
-## バージョン管理
+## 共有項目
 
-`schemaVersion` は必須とする。破壊的な形式変更を行う場合はバージョンを上げ、Package System側で明示的に扱う。
+両画面で共有する項目:
 
-## スケール方針
+- `model.path`
+- `model.format`
+- `name`
+- `description`
+- `scale`
+- `animation`
+- `ui.thumbnail`
+- `transform`
 
-MVPの初期表示スケールは `0.083333`、つまり1/12とする。将来的なリニア変更UIに対応するため、scaleは以下の構造を持つ。
+## model
 
-- `default`: 初期表示スケール
-- `min`: 入力またはスライダーの下限
-- `max`: 入力またはスライダーの上限
-- `step`: 線形調整単位
-- `presets`: 名前付きスケールプリセット
+`model.path` はパッケージディレクトリからの相対パスとする。MVPではGLBを推奨する。
 
-MVPではスケールUIを非表示にするが、Rendererは `scale.default` を読み取って表示に反映する。
+互換性のため、既存の `model.path` / `model.format` 形式を維持する。将来的に `model.file` へ移行する場合は、PackageSystemで両方を読めるようにしてから移行する。
 
-## アニメーション方針
+## scale
 
-アニメーションデータ自体はGLB/glTF側に持たせる。パッケージメタデータはアプリ側の振る舞いだけを表す。
+`scale` はViewerとARの両方で使う。
 
-- 自動再生の有無
-- 初期Clip名
-- 将来的なClip切替用メタデータ
+- Viewer: スライダー初期値、範囲、刻み幅として使う。
+- AR: MVPでは `scale.default` を初期表示倍率として使う。
 
-GLB/glTFに `AnimationClip` が存在しない場合、アニメーションUIは表示しない。
+## ui
+
+`ui` は画面表示方針を持つ。
+
+- `thumbnail`: サムネイル画像
+- `enablePinchScale`: ピンチスケール操作の有効/無効
+- `showScaleSlider`: スケールスライダー表示の有効/無効
+
+## animation
+
+アニメーション本体はGLB内に持たせる。アプリ側は以下のみ扱う。
+
+- 自動再生
+- 停止
+- 初期Clip選択
+
+`AnimationClip` が存在しない場合、アニメーションUIは表示しない。

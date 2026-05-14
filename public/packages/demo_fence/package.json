@@ -41,6 +41,8 @@
   },
   "ui": {
     "showScaleControls": false,
-    "thumbnail": "thumbnail.jpg"
+    "thumbnail": "marker.png",
+    "enablePinchScale": true,
+    "showScaleSlider": true
   }
 }

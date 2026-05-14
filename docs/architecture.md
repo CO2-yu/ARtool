@@ -1,8 +1,44 @@
 # アーキテクチャ
 
-## 目的
+## 概要
 
-本アーキテクチャでは、UI、ARトラッキング、パッケージ読み込み、3D描画の責務を分離する。MVPでは展示会で安定動作する軽量構成を優先しつつ、将来的な営業ツール化に向けて拡張しやすい境界を残す。
+本システムは、既存のAR.js + Three.js構成を破棄せず、`model-viewer` による通常3Dビューを追加した二段構え構成とする。
+
+責務は以下に分離する。
+
+- Viewer: 通常3Dビュー
+- AR: マーカーARビュー
+- PackageSystem: パッケージ読み込みとパス解決
+- UI: 画面別UI
+- State: 画面状態と選択状態
+
+## 画面責務
+
+### Viewer
+
+`/viewer` が担当する。
+
+- `model-viewer` によるGLB表示
+- ピンチ、回転、ズーム、慣性操作
+- アニメーション再生
+- スケールスライダー
+- 製品説明表示
+- `/ar?package=xxx` への遷移
+
+Viewerは営業ツール化の中心画面とする。
+
+### AR
+
+`/ar` が担当する。
+
+- AR.js + Three.js初期化
+- markerId認識
+- packageId特定
+- 情報パネル表示
+- ユーザー操作後のAR空間表示
+- `/viewer?package=xxx` への遷移
+
+ARは「製品認識入口 + ARデモ」として扱う。
 
 ## ディレクトリ構成
 
@@ -10,21 +46,24 @@
 project-root/
 ├── public/
 │   ├── app.config.json
-│   ├── assets/
+│   ├── draco/
 │   └── packages/
 │       ├── index.json
-│       └── fence_a/
+│       └── <package-id>/
 │           ├── model.glb
 │           ├── marker.patt
-│           ├── thumbnail.jpg
+│           ├── marker.png
+│           ├── marker-print.png
 │           ├── package.json
 │           └── description.md
 ├── src/
 │   ├── ar/
+│   ├── debug/
 │   ├── packages/
 │   ├── renderer/
 │   ├── state/
 │   ├── ui/
+│   ├── viewer/
 │   ├── main.ts
 │   ├── styles.css
 │   └── types.ts
@@ -34,85 +73,92 @@ project-root/
 └── README.md
 ```
 
-## 責務分離
+## PackageSystem
 
-### UI層
+PackageSystemは両画面共通で使う。
 
-- アプリ状態を表示する。
-- ユーザー向け案内とエラーを表示する。
-- 撮影ボタンとアニメーション操作を提供する。
-- AR.jsの詳細を知らない。
-- パッケージJSONを直接解釈しない。
+担当:
 
-### Package System層
+- `app.config.json` 読み込み
+- `packages/index.json` 読み込み
+- `package.json` 読み込み
+- packageIdからpackageへの解決
+- パッケージ内相対パスの解決
+- メタデータキャッシュ
 
-- `app.config.json` を読み込む。
-- `packages/index.json` を読み込む。
-- マーカー認識時にパッケージメタデータを読み込む。
-- パッケージ内アセットの相対パスを解決する。
-- パッケージメタデータをキャッシュする。
-- パッケージスキーマの検証を一箇所に集約する。
+PackageSystemは `model-viewer` やAR.jsの詳細を知らない。
 
-### AR層
+## Viewer構成
 
-- カメラ、AR.js source、context、marker controlsを初期化する。
-- マーカー登録を担当する。
-- marker found / marker lost 相当の状態変化を扱う。
-- UIではなくAR制御側でトラッキング状態を管理する。
+Viewerは `model-viewer` Web Component を使う。
 
-### Renderer層
+初期化手順:
 
-- Three.jsのscene、camera、renderer、light、animation loopを管理する。
-- GLB/glTFをオンデマンドで読み込む。
-- 読み込み済みモデルをpackageId単位でキャッシュする。
-- キャッシュ済みモデルからmarkerId単位の表示インスタンスを生成する。
-- markerId単位のAnimationMixerを管理する。
-- マーカー喪失猶予中は最後に認識できた位置で該当モデルを表示維持する。
-- マーカー喪失猶予時間を超えた場合のみ該当モデルを非表示にする。
+1. `package` query parameterを読む。
+2. PackageSystemで対象パッケージを読む。
+3. `model.path` を相対URL解決する。
+4. `model-viewer.src` に設定する。
+5. `scale` と `ui` 設定からスライダーを初期化する。
+6. 製品名、説明、AR遷移ボタンを表示する。
 
-### State層
+## AR構成
 
-- アプリ状態と状態遷移を定義する。
-- ユーザー向け状態表示を一貫させる。
-- デバッグUIが状態を参照できるようにする。
+ARは既存のAR.js + Three.js構成を維持する。
 
-## マーカーとパッケージの流れ
+ただし、AR.jsが制御するmarker rootと、表示維持用のdisplay rootを分離する。
 
-1. アプリが設定とパッケージインデックスを読み込む。
-2. AR層がパッケージインデックス内のマーカー情報を登録する。
-3. AR.jsがマーカーrootの表示状態を更新する。
-4. アプリがマーカー表示状態の変化を検出する。
-5. マーカー認識時、同時表示上限を確認する。
-6. 必要に応じて `package.json` を読み込む。
-7. 必要に応じてモデルを読み込む。
-8. 読み込んだモデルインスタンスをマーカーrootへ追加する。
-9. マーカーを一時的に見失った場合、`markerId` 単位の `lastSeenAt` を基準に猶予時間内はモデル表示を維持する。
-10. `lostTimeoutMs` を超えてマーカーを見失った場合、モデルインスタンスを非表示にする。
+- `marker.root`: AR.jsが更新する検出用root
+- `marker.displayRoot`: アプリが表示維持するroot
 
-## 複数マーカー方針
+マーカー検出時は `marker.root.matrixWorld` を `displayRoot` へコピーする。マーカー喪失猶予中は `displayRoot` を最後の姿勢で表示維持する。
 
-- 同時アクティブマーカー数は最大3とする。
-- `markerId` 単位でトラッキング状態を管理する。
-- `packageId` 単位で読み込み状態とモデルキャッシュを管理する。
-- 3件アクティブな状態で新規マーカーを認識した場合、その新規認識を無視する。
-- 既存表示モデルを削除して新規モデルを優先することはしない。
+## AR情報パネル
+
+ARビューでは、マーカー認識直後にGLBを即表示しない。まず情報パネルを表示する。
+
+情報パネルの状態:
+
+- `selectedPackageId`
+- `selectedMarkerId`
+- `selectedPackage`
+
+最後に認識したマーカーが選択対象になる。
+
+「ARで表示する」を押すと、そのpackageIdのGLBをAR空間へロードして表示する。
+
+## State
+
+Stateは画面共通のアプリ状態と、画面固有状態を分ける。
+
+共通状態:
+
+- `BOOTING`
+- `LOADING_CONFIG`
+- `READY`
+- `ERROR`
+
+Viewer固有:
+
+- `LOADING_MODEL`
+- `VIEWING`
+
+AR固有:
+
+- `WAIT_CAMERA_PERMISSION`
+- `TRACKING`
+- `LOADING_MODEL`
 
 ## パス方針
 
-すべての設定とアセットパスは相対パスで扱う。
+絶対URLはハードコードしない。
 
-- `app.config.json`
-- `packages/index.json`
-- `packages/index.json` 内のパッケージパス
-- `package.json` 内のmodel、marker、thumbnail、descriptionパス
+- Viteは `base: "./"` を使う。
+- packageIdはquery parameterで渡す。
+- パッケージ内のアセットは `package.json` から相対解決する。
 
-デプロイ先の絶対URLは埋め込まない。GitHub Pagesのサブパス対応はViteの `base: "./"` で行う。
+## 既存コードを壊さないための方針
 
-## デプロイ移植性
-
-MVPのデプロイ先はGitHub Pagesとする。将来的にVercelへ移行しやすい理由は以下。
-
-- Viteの静的ビルドで完結する。
-- 実行時データは `public/` 配下にある。
-- サーバー保存やAPIを必要としない。
-- 公開URLのハードコードがない。
+- AR.js + Three.js関連処理はARモードに閉じ込める。
+- PackageSystemは既存を拡張して再利用する。
+- Viewerは新規モジュールとして追加する。
+- `package.json` の互換性を維持し、旧 `model.path` も読めるようにする。
