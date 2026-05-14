@@ -17,6 +17,7 @@ export class AppUi {
   private readonly animationButton: HTMLButtonElement;
   private readonly preview: HTMLElement;
   private readonly previewImage: HTMLImageElement;
+  private readonly previewDownload: HTMLAnchorElement;
   private readonly debugPanel: HTMLElement;
   private config: AppConfig | null = null;
   private animationPlaying = false;
@@ -48,7 +49,10 @@ export class AppUi {
         </nav>
         <section class="preview" data-role="preview" hidden>
           <img data-role="preview-image" alt="撮影プレビュー" />
-          <button type="button" data-role="close-preview">閉じる</button>
+          <div class="preview-actions">
+            <a data-role="download-preview" download="webar-capture.png">保存</a>
+            <button type="button" data-role="close-preview">閉じる</button>
+          </div>
         </section>
         <pre class="debug-panel" data-role="debug" ${debugEnabled ? "" : "hidden"}></pre>
       </main>
@@ -63,6 +67,7 @@ export class AppUi {
     this.animationButton = this.requireButton("[data-role='animation']");
     this.preview = this.require("[data-role='preview']");
     this.previewImage = this.require("[data-role='preview-image']");
+    this.previewDownload = this.require("[data-role='download-preview']");
     this.debugPanel = this.require("[data-role='debug']");
 
     this.captureButton.addEventListener("click", callbacks.onCapture);
@@ -118,12 +123,14 @@ export class AppUi {
 
   showPreview(dataUrl: string): void {
     this.previewImage.src = dataUrl;
+    this.previewDownload.href = dataUrl;
     this.preview.hidden = false;
   }
 
   closePreview(): void {
     this.preview.hidden = true;
     this.previewImage.removeAttribute("src");
+    this.previewDownload.removeAttribute("href");
   }
 
   updateDebug(snapshot: DebugSnapshot): void {

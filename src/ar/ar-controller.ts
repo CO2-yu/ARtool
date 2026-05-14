@@ -6,6 +6,7 @@ export class ArController {
   private source: any = null;
   private context: any = null;
   private readonly markers = new Map<string, MarkerRuntime>();
+  private lastLayoutWarning: string | null = null;
 
   constructor(
     private readonly scene: THREE.Scene,
@@ -45,6 +46,9 @@ export class ArController {
     });
 
     window.addEventListener("resize", () => this.resize());
+    window.addEventListener("orientationchange", () => {
+      window.setTimeout(() => this.resize(), 100);
+    });
     window.visualViewport?.addEventListener("resize", () => this.resize());
     window.visualViewport?.addEventListener("scroll", () => this.resize());
     this.resize();
@@ -99,18 +103,8 @@ export class ArController {
   }
 
   layoutFullViewport(): void {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    const visualWidth = Math.round(window.visualViewport?.width ?? width);
-    const visualHeight = Math.round(window.visualViewport?.height ?? height);
-    const viewportWidth = Math.max(width, visualWidth);
-    const viewportHeight = Math.max(height, visualHeight);
-
     this.applyCoverStyle(this.source?.domElement ?? null, 0);
     this.applyCoverStyle(this.rendererElement, 1);
-
-    this.rendererElement.width = Math.round(viewportWidth * window.devicePixelRatio);
-    this.rendererElement.height = Math.round(viewportHeight * window.devicePixelRatio);
 
     const arCanvas = this.context?.arController?.canvas;
     if (arCanvas) {
@@ -118,6 +112,13 @@ export class ArController {
       arCanvas.width = this.rendererElement.width;
       arCanvas.height = this.rendererElement.height;
     }
+
+    this.verifyViewportSync();
+  }
+
+  getVideoElement(): HTMLVideoElement | null {
+    const element = this.source?.domElement;
+    return element instanceof HTMLVideoElement ? element : null;
   }
 
   private attachVideoElement(): void {
@@ -141,10 +142,8 @@ export class ArController {
     Object.assign(element.style, {
       position: "fixed",
       inset: "0",
-      width: "100vw",
-      height: "100dvh",
-      minWidth: "100vw",
-      minHeight: "100vh",
+      width: "100%",
+      height: "100%",
       objectFit: "cover",
       objectPosition: "center center",
       margin: "0",
@@ -152,5 +151,38 @@ export class ArController {
       transform: "none",
       zIndex: String(zIndex),
     });
+  }
+
+  private verifyViewportSync(): void {
+    const arCanvas = this.context?.arController?.canvas as HTMLCanvasElement | undefined;
+    const video = this.source?.domElement as HTMLElement | undefined;
+    const rendererRect = this.rendererElement.getBoundingClientRect();
+    const videoRect = video?.getBoundingClientRect();
+
+    const warnings: string[] = [];
+    if (arCanvas && (arCanvas.width !== this.rendererElement.width || arCanvas.height !== this.rendererElement.height)) {
+      warnings.push(
+        `AR.js canvas buffer ${arCanvas.width}x${arCanvas.height} != renderer buffer ${this.rendererElement.width}x${this.rendererElement.height}`,
+      );
+    }
+    if (Math.round(rendererRect.width) !== window.innerWidth || Math.round(rendererRect.height) !== window.innerHeight) {
+      warnings.push(
+        `renderer CSS ${Math.round(rendererRect.width)}x${Math.round(rendererRect.height)} != viewport ${window.innerWidth}x${window.innerHeight}`,
+      );
+    }
+    if (
+      videoRect &&
+      (Math.round(videoRect.width) !== window.innerWidth || Math.round(videoRect.height) !== window.innerHeight)
+    ) {
+      warnings.push(
+        `video CSS ${Math.round(videoRect.width)}x${Math.round(videoRect.height)} != viewport ${window.innerWidth}x${window.innerHeight}`,
+      );
+    }
+
+    const warning = warnings.join("; ");
+    if (warning && warning !== this.lastLayoutWarning) {
+      this.lastLayoutWarning = warning;
+      console.warn(`AR viewport layout mismatch: ${warning}`);
+    }
   }
 }

@@ -191,7 +191,8 @@ function captureStill(): void {
   try {
     ui.setControlsHidden(true);
     requestAnimationFrame(() => {
-      const dataUrl = arRenderer.captureDataUrl();
+      arRenderer.render();
+      const dataUrl = arRenderer.captureCompositeDataUrl(arController?.getVideoElement() ?? null);
       ui.setControlsHidden(false);
       ui.showPreview(dataUrl);
     });

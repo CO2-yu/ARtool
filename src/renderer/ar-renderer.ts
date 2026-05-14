@@ -23,8 +23,7 @@ export class ArRenderer {
       alpha: true,
       preserveDrawingBuffer: true,
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.resize();
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     const ambient = new THREE.HemisphereLight(0xffffff, 0x444444, 2.2);
@@ -34,10 +33,24 @@ export class ArRenderer {
   attach(container: HTMLElement): void {
     container.appendChild(this.renderer.domElement);
     window.addEventListener("resize", () => this.resize());
+    window.addEventListener("orientationchange", () => {
+      window.setTimeout(() => this.resize(), 100);
+    });
   }
 
   resize(): void {
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(window.innerWidth, window.innerHeight, false);
+    Object.assign(this.renderer.domElement.style, {
+      position: "fixed",
+      inset: "0",
+      width: "100%",
+      height: "100%",
+      margin: "0",
+      padding: "0",
+      objectFit: "cover",
+      objectPosition: "center center",
+    });
   }
 
   async ensureModel(
@@ -119,6 +132,30 @@ export class ArRenderer {
     return this.renderer.domElement.toDataURL("image/png");
   }
 
+  captureCompositeDataUrl(video: HTMLVideoElement | null): string {
+    const sourceCanvas = this.renderer.domElement;
+    const width = sourceCanvas.width;
+    const height = sourceCanvas.height;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return this.captureDataUrl();
+    }
+
+    if (video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      drawCover(context, video, width, height);
+    } else {
+      context.fillStyle = "#000";
+      context.fillRect(0, 0, width, height);
+    }
+
+    context.drawImage(sourceCanvas, 0, 0, width, height);
+    return canvas.toDataURL("image/png");
+  }
+
   private loadModelAsset(modelPackage: ModelPackage, packageLoader: PackageLoader): Promise<LoadedModelAsset> {
     const cached = this.modelCache.get(modelPackage.id);
     if (cached) {
@@ -134,6 +171,29 @@ export class ArRenderer {
     this.modelCache.set(modelPackage.id, loadPromise);
     return loadPromise;
   }
+}
+
+function drawCover(
+  context: CanvasRenderingContext2D,
+  video: HTMLVideoElement,
+  targetWidth: number,
+  targetHeight: number,
+): void {
+  const sourceWidth = video.videoWidth;
+  const sourceHeight = video.videoHeight;
+
+  if (sourceWidth === 0 || sourceHeight === 0) {
+    context.fillStyle = "#000";
+    context.fillRect(0, 0, targetWidth, targetHeight);
+    return;
+  }
+
+  const scale = Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight);
+  const drawWidth = sourceWidth * scale;
+  const drawHeight = sourceHeight * scale;
+  const dx = (targetWidth - drawWidth) / 2;
+  const dy = (targetHeight - drawHeight) / 2;
+  context.drawImage(video, dx, dy, drawWidth, drawHeight);
 }
 
 function applyPackageTransform(root: THREE.Object3D, modelPackage: ModelPackage): void {

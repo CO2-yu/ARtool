@@ -18,6 +18,7 @@ body,
   width: 100%;
   height: 100%;
   margin: 0;
+  padding: 0;
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: none;
@@ -32,9 +33,8 @@ button {
 
 .shell {
   position: relative;
-  width: 100vw;
-  height: 100dvh;
-  min-height: 100vh;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background: linear-gradient(155deg, #0e0f0f, #1f2420 58%, #171615);
   touch-action: none;
@@ -46,9 +46,10 @@ button {
 body > video {
   position: fixed;
   inset: 0;
-  width: 100vw !important;
-  height: 100dvh !important;
-  min-height: 100vh !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .ar-root canvas,
@@ -216,13 +217,23 @@ body > video {
   object-fit: contain;
 }
 
-.preview button {
+.preview-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.preview button,
+.preview a {
+  display: grid;
   min-height: 48px;
+  place-items: center;
   border: 0;
   border-radius: 8px;
   background: #f2eee6;
   color: #111;
   font-weight: 700;
+  text-decoration: none;
 }
 
 .debug-panel {
