@@ -1,4 +1,3 @@
-import "@google/model-viewer";
 import { PackageLoader } from "../packages/package-loader";
 import type { ModelPackage } from "../types";
 
@@ -61,7 +60,7 @@ function renderViewer(root: HTMLElement, modelPackage: ModelPackage, modelUrl: s
     </main>
   `;
 
-  const viewer = root.querySelector("model-viewer");
+  const viewer = root.querySelector<HTMLElement>("model-viewer");
   const slider = root.querySelector<HTMLInputElement>("[data-role='viewer-scale-slider']");
   const valueLabel = root.querySelector<HTMLElement>("[data-role='viewer-scale-value']");
 
