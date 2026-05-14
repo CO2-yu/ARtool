@@ -7,7 +7,6 @@ interface UiCallbacks {
   onClosePreview: () => void;
   onScaleChange: (value: number) => void;
   onOpenViewer: () => void;
-  onShowInAr: () => void;
 }
 
 export class AppUi {
@@ -62,7 +61,6 @@ export class AppUi {
           </div>
           <div class="ar-info-actions">
             <button type="button" data-role="open-viewer">3Dビューで見る</button>
-            <button type="button" data-role="show-in-ar">ARで表示する</button>
           </div>
         </section>
         <nav class="controls" aria-label="AR controls">
@@ -106,7 +104,6 @@ export class AppUi {
     this.animationButton.addEventListener("click", callbacks.onToggleAnimation);
     this.scaleSlider.addEventListener("input", () => callbacks.onScaleChange(Number(this.scaleSlider.value)));
     this.requireButton("[data-role='open-viewer']").addEventListener("click", callbacks.onOpenViewer);
-    this.requireButton("[data-role='show-in-ar']").addEventListener("click", callbacks.onShowInAr);
     this.requireButton("[data-role='close-preview']").addEventListener("click", callbacks.onClosePreview);
     this.setAnimationAvailable(false);
     this.setScaleAvailable(false);

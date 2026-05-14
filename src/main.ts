@@ -49,7 +49,7 @@ async function bootstrap(): Promise<void> {
 
 function isViewerRoute(): boolean {
   const path = window.location.pathname.replace(/\/+$/, "");
-  return path.endsWith("/viewer") || !path.endsWith("/ar");
+  return path.endsWith("/viewer");
 }
 
 async function startArApp(root: HTMLElement): Promise<void> {
@@ -63,7 +63,6 @@ async function startArApp(root: HTMLElement): Promise<void> {
       onClosePreview: () => ui.closePreview(),
       onScaleChange: applyModelScale,
       onOpenViewer: openSelectedInViewer,
-      onShowInAr: showSelectedInAr,
     },
     isDebugMode(),
   );
@@ -205,42 +204,25 @@ async function handleMarkerRecognized(marker: MarkerRuntime): Promise<void> {
   }
 
   try {
+    const isFirstActiveMarker = activeMarkers.size === 0;
     const modelPackage = await packageLoader.loadPackage(marker.packageId);
     if (!isMarkerStillDisplayable(marker)) {
       state.setStatus(activeMarkers.size > 0 ? "TRACKING" : "READY");
       return;
     }
+
+    if (!activeMarkers.has(marker.markerId) && activeMarkers.size >= maxActiveMarkers) {
+      marker.ignoredUntilLost = true;
+      marker.root.visible = false;
+      return;
+    }
+
     selectedMarker = marker;
     selectedPackage = modelPackage;
+    currentPackage = modelPackage;
+    activeMarkers.add(marker.markerId);
     ui.setCurrentPackage(modelPackage);
     ui.showInfoPanel(modelPackage);
-    state.setStatus("TRACKING");
-  } catch (error) {
-    state.setError("モデル情報を読み込めませんでした", error);
-  }
-}
-
-async function showSelectedInAr(): Promise<void> {
-  if (!selectedMarker || !selectedPackage) {
-    return;
-  }
-
-  const marker = selectedMarker;
-  const modelPackage = selectedPackage;
-
-  if (!activeMarkers.has(marker.markerId) && activeMarkers.size >= maxActiveMarkers) {
-    marker.ignoredUntilLost = true;
-    marker.root.visible = false;
-    return;
-  }
-
-  const isFirstActiveMarker = activeMarkers.size === 0;
-  activeMarkers.add(marker.markerId);
-
-  try {
-    state.setStatus("LOADING_MODEL");
-    currentPackage = modelPackage;
-    ui.setCurrentPackage(modelPackage);
     configureScaleFromPackage(modelPackage, isFirstActiveMarker);
     const instance = await arRenderer.ensureModel(marker, modelPackage, packageLoader);
     if (!isMarkerStillDisplayable(marker)) {
