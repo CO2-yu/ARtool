@@ -23,6 +23,8 @@ bootstrap().catch((error: unknown) => {
 });
 
 async function bootstrap(): Promise<void> {
+  preventViewportGestures();
+
   const root = document.querySelector<HTMLElement>("#app");
   if (!root) {
     throw new Error("Missing #app root.");
@@ -70,6 +72,28 @@ async function bootstrap(): Promise<void> {
 
   state.setStatus("READY");
   requestAnimationFrame(tick);
+}
+
+function preventViewportGestures(): void {
+  document.addEventListener(
+    "touchmove",
+    (event) => {
+      if (event.touches.length > 1) {
+        event.preventDefault();
+      }
+    },
+    { passive: false },
+  );
+
+  for (const eventName of ["gesturestart", "gesturechange", "gestureend"]) {
+    document.addEventListener(
+      eventName,
+      (event: Event) => {
+        event.preventDefault();
+      },
+      { passive: false },
+    );
+  }
 }
 
 function tick(): void {

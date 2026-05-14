@@ -115,5 +115,12 @@ export class ArController {
     if (element.parentElement !== this.container) {
       this.container.insertBefore(element, this.rendererElement);
     }
+    Object.assign(element.style, {
+      position: "fixed",
+      inset: "0",
+      width: "100vw",
+      height: "100dvh",
+      objectFit: "cover",
+    });
   }
 }
