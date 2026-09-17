@@ -1,4 +1,5 @@
 import type { AppConfig, ModelPackage, PackageIndex, PackageIndexEntry } from "../types";
+import { appUrl, dirnameUrl, joinUrl } from "../utils/app-url";
 
 export class PackageLoader {
   private appConfig: AppConfig | null = null;
@@ -7,26 +8,18 @@ export class PackageLoader {
   private readonly packageCache = new Map<string, ModelPackage>();
 
   async loadAppConfig(path = "app.config.json"): Promise<AppConfig> {
-    const config = await this.fetchJson<AppConfig>(path);
-    if (config.schemaVersion !== 1 || !config.app?.packagesIndex) {
-      throw new Error("Unsupported app config schema.");
-    }
+    const config = await this.fetchJson<AppConfig>(appUrl(path));
+    validateAppConfig(config);
     this.appConfig = config;
     return config;
   }
 
   async loadPackageIndex(path: string): Promise<PackageIndex> {
-    const index = await this.fetchJson<PackageIndex>(path);
-    if (index.schemaVersion !== 1 || !Array.isArray(index.packages)) {
-      throw new Error("Unsupported package index schema.");
-    }
-    for (const entry of index.packages) {
-      if (!entry.id || !entry.path || !entry.marker?.id || !entry.marker?.path) {
-        throw new Error("Package index entry is missing required fields.");
-      }
-    }
+    const indexUrl = appUrl(path);
+    const index = await this.fetchJson<PackageIndex>(indexUrl);
+    validatePackageIndex(index);
     this.packageIndex = index;
-    this.packageIndexBasePath = dirname(path);
+    this.packageIndexBasePath = dirnameUrl(indexUrl);
     return index;
   }
 
@@ -55,7 +48,7 @@ export class PackageLoader {
 
     const packageWithBase: ModelPackage = {
       ...modelPackage,
-      basePath: dirname(packagePath),
+      basePath: dirnameUrl(packagePath),
     };
 
     this.packageCache.set(packageId, packageWithBase);
@@ -79,6 +72,37 @@ export class PackageLoader {
   }
 }
 
+function validateAppConfig(config: AppConfig): void {
+  if (config.schemaVersion !== 1 || !config.app?.packagesIndex || !config.ui) {
+    throw new Error("Unsupported app config schema.");
+  }
+  if (!Number.isFinite(config.app.maxActiveMarkers) || config.app.maxActiveMarkers < 1) {
+    throw new Error("app.maxActiveMarkers must be at least 1.");
+  }
+}
+
+function validatePackageIndex(index: PackageIndex): void {
+  if (index.schemaVersion !== 1 || !Array.isArray(index.packages)) {
+    throw new Error("Unsupported package index schema.");
+  }
+
+  const packageIds = new Set<string>();
+  const markerIds = new Set<string>();
+  for (const entry of index.packages) {
+    if (!entry.id || !entry.path || !entry.marker?.id || !entry.marker?.path) {
+      throw new Error("Package index entry is missing required fields.");
+    }
+    if (packageIds.has(entry.id)) {
+      throw new Error(`Duplicate package id: ${entry.id}`);
+    }
+    if (markerIds.has(entry.marker.id)) {
+      throw new Error(`Duplicate marker id: ${entry.marker.id}`);
+    }
+    packageIds.add(entry.id);
+    markerIds.add(entry.marker.id);
+  }
+}
+
 function validatePackage(modelPackage: Omit<ModelPackage, "basePath">, expectedId: string): void {
   if (modelPackage.schemaVersion !== 1) {
     throw new Error(`Unsupported package schema: ${expectedId}`);
@@ -89,19 +113,16 @@ function validatePackage(modelPackage: Omit<ModelPackage, "basePath">, expectedI
   if (!modelPackage.model?.path || !modelPackage.marker?.path) {
     throw new Error(`Package asset path is missing: ${expectedId}`);
   }
+
+  const { min, max, step, default: defaultScale } = modelPackage.scale;
+  if (![min, max, step, defaultScale].every(Number.isFinite) || min <= 0 || max < min || step <= 0) {
+    throw new Error(`Invalid scale settings: ${expectedId}`);
+  }
+  if (defaultScale < min || defaultScale > max) {
+    throw new Error(`Default scale is outside the allowed range: ${expectedId}`);
+  }
+
   if (modelPackage.marker.physicalSizeMm !== 100) {
     console.warn(`Marker size is not the standard 100 mm: ${expectedId}`);
   }
-}
-
-export function joinUrl(...parts: string[]): string {
-  return parts
-    .flatMap((part) => part.split("/"))
-    .filter(Boolean)
-    .join("/");
-}
-
-function dirname(path: string): string {
-  const index = path.lastIndexOf("/");
-  return index === -1 ? "" : path.slice(0, index);
 }
