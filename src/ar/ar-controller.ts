@@ -69,6 +69,12 @@ export class ArController {
       throw new Error("AR controller is not initialized.");
     }
 
+    const minConfidence = clamp(this.tuning.minConfidence ?? 0.6, 0, 1);
+    const smooth = this.tuning.smooth ?? false;
+    const smoothCount = Math.max(1, Math.round(this.tuning.smoothCount ?? 5));
+    const smoothTolerance = Math.max(0, this.tuning.smoothTolerance ?? 0.01);
+    const smoothThreshold = Math.max(1, Math.round(this.tuning.smoothThreshold ?? 2));
+
     for (const definition of definitions) {
       if (this.markers.has(definition.markerId)) {
         continue;
@@ -89,6 +95,11 @@ export class ArController {
         type: "pattern",
         patternUrl: definition.patternUrl,
         size: 1,
+        minConfidence,
+        smooth,
+        smoothCount,
+        smoothTolerance,
+        smoothThreshold,
       });
 
       const marker: MarkerRuntime = {
@@ -226,4 +237,8 @@ function thresholdModeValue(artoolkit: Record<string, number>, mode: NonNullable
   };
   const key = map[mode];
   return key ? artoolkit[key] : null;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
