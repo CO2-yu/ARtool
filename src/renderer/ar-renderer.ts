@@ -2,8 +2,9 @@ import * as THREE from "three";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
-import type { LoadedModelAsset, MarkerModelInstance, MarkerRuntime, ModelPackage } from "../types";
+import type { LoadedModelAsset, MarkerModelInstance, MarkerRuntime, ModelPackage, Vector3Tuple } from "../types";
 import { PackageLoader } from "../packages/package-loader";
+import { appUrl } from "../utils/app-url";
 
 export class ArRenderer {
   readonly scene = new THREE.Scene();
@@ -18,10 +19,9 @@ export class ArRenderer {
   private readonly mixers = new Map<string, THREE.AnimationMixer>();
   private readonly actions = new Map<string, THREE.AnimationAction[]>();
   private animationEnabled = true;
-  private modelScale = 1;
 
   constructor() {
-    this.dracoLoader.setDecoderPath("draco/");
+    this.dracoLoader.setDecoderPath(appUrl("draco/"));
     this.loader.setDRACOLoader(this.dracoLoader);
 
     this.renderer = new THREE.WebGLRenderer({
@@ -74,9 +74,18 @@ export class ArRenderer {
     const root = clone(asset.source);
     root.name = `model:${modelPackage.id}:${marker.markerId}`;
     applyPackageTransform(root, modelPackage);
-    root.scale.setScalar(this.modelScale);
     marker.displayRoot.add(root);
     marker.displayRoot.visible = true;
+
+    const instance: MarkerModelInstance = {
+      markerId: marker.markerId,
+      packageId: modelPackage.id,
+      root,
+      baseScale: [...modelPackage.transform.scale] as Vector3Tuple,
+      userScale: modelPackage.scale.default,
+      hasAnimation: asset.animations.length > 0,
+    };
+    applyInstanceScale(instance, instance.userScale);
 
     const mixer = asset.animations.length > 0 ? new THREE.AnimationMixer(root) : null;
     if (mixer) {
@@ -91,12 +100,6 @@ export class ArRenderer {
       this.actions.set(marker.markerId, [action]);
     }
 
-    const instance: MarkerModelInstance = {
-      markerId: marker.markerId,
-      packageId: modelPackage.id,
-      root,
-      hasAnimation: asset.animations.length > 0,
-    };
     this.instances.set(marker.markerId, instance);
     return instance;
   }
@@ -116,11 +119,12 @@ export class ArRenderer {
     return [...this.instances.values()].filter((instance) => instance.root.visible).length;
   }
 
-  setModelScale(value: number): void {
-    this.modelScale = value;
-    for (const instance of this.instances.values()) {
-      instance.root.scale.setScalar(value);
+  setMarkerScale(markerId: string, value: number): void {
+    const instance = this.instances.get(markerId);
+    if (!instance) {
+      return;
     }
+    applyInstanceScale(instance, value);
   }
 
   setAnimationPlaying(playing: boolean): void {
@@ -186,11 +190,17 @@ export class ArRenderer {
     }
 
     const modelUrl = packageLoader.resolvePackageAsset(modelPackage, modelPackage.model.path);
-    const loadPromise = this.loader.loadAsync(modelUrl).then((gltf) => ({
-      packageId: modelPackage.id,
-      source: gltf.scene,
-      animations: gltf.animations,
-    }));
+    const loadPromise = this.loader
+      .loadAsync(modelUrl)
+      .then((gltf) => ({
+        packageId: modelPackage.id,
+        source: gltf.scene,
+        animations: gltf.animations,
+      }))
+      .catch((error) => {
+        this.modelCache.delete(modelPackage.id);
+        throw error;
+      });
     this.modelCache.set(modelPackage.id, loadPromise);
     return loadPromise;
   }
@@ -222,10 +232,12 @@ function drawCover(
 function applyPackageTransform(root: THREE.Object3D, modelPackage: ModelPackage): void {
   const [px, py, pz] = modelPackage.transform.position;
   const [rx, ry, rz] = modelPackage.transform.rotation;
-  const [sx, sy, sz] = modelPackage.transform.scale;
-  const displayScale = modelPackage.scale.default;
-
   root.position.set(px, py, pz);
   root.rotation.set(rx, ry, rz);
-  root.scale.set(sx * displayScale, sy * displayScale, sz * displayScale);
+}
+
+function applyInstanceScale(instance: MarkerModelInstance, userScale: number): void {
+  instance.userScale = userScale;
+  const [sx, sy, sz] = instance.baseScale;
+  instance.root.scale.set(sx * userScale, sy * userScale, sz * userScale);
 }
