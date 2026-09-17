@@ -137,6 +137,8 @@ export interface MarkerModelInstance {
   markerId: string;
   packageId: string;
   root: Object3D;
+  baseScale: Vector3Tuple;
+  userScale: number;
   hasAnimation: boolean;
 }
 
