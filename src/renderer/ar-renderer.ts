@@ -18,7 +18,6 @@ export class ArRenderer {
   private readonly instances = new Map<string, MarkerModelInstance>();
   private readonly mixers = new Map<string, THREE.AnimationMixer>();
   private readonly actions = new Map<string, THREE.AnimationAction[]>();
-  private animationEnabled = true;
 
   constructor() {
     this.dracoLoader.setDecoderPath(appUrl("draco/"));
@@ -93,7 +92,7 @@ export class ArRenderer {
         asset.animations.find((item) => item.name === modelPackage.animation.defaultClip) ?? asset.animations[0];
       const action = mixer.clipAction(clip);
       action.reset();
-      if (modelPackage.animation.autoPlay && this.animationEnabled) {
+      if (modelPackage.animation.autoPlay) {
         action.play();
       }
       this.mixers.set(marker.markerId, mixer);
@@ -127,16 +126,23 @@ export class ArRenderer {
     applyInstanceScale(instance, value);
   }
 
-  setAnimationPlaying(playing: boolean): void {
-    this.animationEnabled = playing;
-    for (const actions of this.actions.values()) {
-      for (const action of actions) {
-        action.paused = !playing;
-        if (playing && !action.isRunning()) {
-          action.play();
-        }
+  getMarkerScale(markerId: string): number | null {
+    return this.instances.get(markerId)?.userScale ?? null;
+  }
+
+  setMarkerAnimationPlaying(markerId: string, playing: boolean): void {
+    const actions = this.actions.get(markerId) ?? [];
+    for (const action of actions) {
+      action.paused = !playing;
+      if (playing && !action.isRunning()) {
+        action.play();
       }
     }
+  }
+
+  isMarkerAnimationPlaying(markerId: string): boolean {
+    const actions = this.actions.get(markerId) ?? [];
+    return actions.some((action) => action.isRunning() && !action.paused);
   }
 
   hasVisibleAnimation(): boolean {
