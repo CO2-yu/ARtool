@@ -6,6 +6,7 @@ import { ArRenderer } from "./renderer/ar-renderer";
 import { AppStateStore } from "./state/app-state";
 import type { MarkerDefinition, MarkerRuntime, ModelPackage, UiMode } from "./types";
 import { createAppUi, resolveUiMode, type AppUiController } from "./ui/app-ui";
+import { appUrl } from "./utils/app-url";
 import { startViewerApp } from "./viewer/viewer-app";
 
 const state = new AppStateStore();
@@ -19,7 +20,6 @@ let uiMode: UiMode = "development";
 let maxActiveMarkers = 3;
 let lostTimeoutMs = 800;
 let cameraPermissionState = "not requested";
-let currentPackage: ModelPackage | null = null;
 let selectedMarker: MarkerRuntime | null = null;
 let selectedPackage: ModelPackage | null = null;
 let scaleMin = 0.02;
@@ -232,10 +232,9 @@ async function handleMarkerRecognized(marker: MarkerRuntime): Promise<void> {
   }
 
   try {
-    const isFirstActiveMarker = activeMarkers.size === 0;
     const modelPackage = await packageLoader.loadPackage(marker.packageId);
     if (!isMarkerStillDisplayable(marker)) {
-      state.setStatus(activeMarkers.size > 0 ? "TRACKING" : "READY");
+      restoreTrackingStatus();
       return;
     }
 
@@ -247,21 +246,26 @@ async function handleMarkerRecognized(marker: MarkerRuntime): Promise<void> {
 
     selectedMarker = marker;
     selectedPackage = modelPackage;
-    currentPackage = modelPackage;
     activeMarkers.add(marker.markerId);
     requireUi().setCurrentPackage(modelPackage);
     requireUi().showInfoPanel(modelPackage);
-    configureScaleFromPackage(modelPackage, isFirstActiveMarker);
+    configureScaleFromPackage(modelPackage, arRenderer.getMarkerScale(marker.markerId));
+
+    state.setStatus("LOADING_MODEL");
     const instance = await arRenderer.ensureModel(marker, modelPackage, packageLoader);
     if (!isMarkerStillDisplayable(marker)) {
       arRenderer.hideMarkerModel(marker.markerId);
       activeMarkers.delete(marker.markerId);
-      state.setStatus(activeMarkers.size > 0 ? "TRACKING" : "READY");
+      if (selectedMarker?.markerId === marker.markerId) {
+        void selectFallbackMarker();
+      }
+      restoreTrackingStatus();
       return;
     }
-    requireUi().setAnimationAvailable(instance.hasAnimation || arRenderer.hasVisibleAnimation());
-    requireUi().setAnimationPlaying(true);
-    arRenderer.setAnimationPlaying(true);
+
+    arRenderer.setMarkerScale(marker.markerId, currentScale);
+    requireUi().setAnimationAvailable(instance.hasAnimation);
+    requireUi().setAnimationPlaying(instance.hasAnimation && arRenderer.isMarkerAnimationPlaying(marker.markerId));
     state.setStatus("TRACKING");
   } catch (error) {
     state.setError("モデルを読み込めませんでした", error);
@@ -272,21 +276,23 @@ function openSelectedInViewer(): void {
   if (!selectedPackage) {
     return;
   }
-  window.location.href = `../viewer/?package=${encodeURIComponent(selectedPackage.id)}`;
+  window.location.href = appUrl(`viewer/?package=${encodeURIComponent(selectedPackage.id)}`);
 }
 
-function configureScaleFromPackage(modelPackage: ModelPackage, resetToDefault: boolean): void {
+function configureScaleFromPackage(modelPackage: ModelPackage, existingScale: number | null = null): void {
   scaleMin = modelPackage.scale.min;
   scaleMax = modelPackage.scale.max;
   scaleStep = modelPackage.scale.step;
-  const nextScale = resetToDefault ? modelPackage.scale.default : currentScale;
-  applyModelScale(nextScale);
+  currentScale = clamp(existingScale ?? modelPackage.scale.default, scaleMin, scaleMax);
   requireUi().configureScale(scaleMin, scaleMax, scaleStep, currentScale);
+  requireUi().setScaleAvailable(modelPackage.ui.showScaleControls);
 }
 
 function applyModelScale(value: number): void {
   currentScale = clamp(value, scaleMin, scaleMax);
-  arRenderer.setModelScale(currentScale);
+  if (selectedMarker) {
+    arRenderer.setMarkerScale(selectedMarker.markerId, currentScale);
+  }
   requireUi().setScaleValue(currentScale);
 }
 
@@ -294,7 +300,7 @@ function attachPinchScaleHandlers(target: HTMLElement): void {
   target.addEventListener(
     "touchstart",
     (event) => {
-      if (!pinchScaleEnabled || event.touches.length !== 2) {
+      if (!isPinchScaleEnabled() || event.touches.length !== 2) {
         return;
       }
       event.preventDefault();
@@ -307,7 +313,7 @@ function attachPinchScaleHandlers(target: HTMLElement): void {
   target.addEventListener(
     "touchmove",
     (event) => {
-      if (!pinchScaleEnabled || event.touches.length !== 2 || !pinchStartDistance) {
+      if (!isPinchScaleEnabled() || event.touches.length !== 2 || !pinchStartDistance) {
         return;
       }
       event.preventDefault();
@@ -322,6 +328,10 @@ function attachPinchScaleHandlers(target: HTMLElement): void {
   };
   target.addEventListener("touchend", resetPinch, { passive: false });
   target.addEventListener("touchcancel", resetPinch, { passive: false });
+}
+
+function isPinchScaleEnabled(): boolean {
+  return pinchScaleEnabled && selectedPackage?.ui.enablePinchScale !== false;
 }
 
 function touchDistance(a: Touch, b: Touch): number {
@@ -351,16 +361,50 @@ function handleMarkerLost(marker: MarkerRuntime): void {
   activeMarkers.delete(marker.markerId);
   arRenderer.hideMarkerModel(marker.markerId);
 
+  if (selectedMarker?.markerId === marker.markerId) {
+    void selectFallbackMarker();
+  }
+
   if (activeMarkers.size === 0) {
-    currentPackage = null;
-    selectedMarker = null;
-    selectedPackage = null;
-    requireUi().setCurrentPackage(null);
-    requireUi().hideInfoPanel();
-    requireUi().setAnimationAvailable(false);
-    requireUi().setScaleAvailable(false);
+    clearSelectionUi();
     state.setStatus("READY");
   }
+}
+
+async function selectFallbackMarker(): Promise<void> {
+  if (!arController || activeMarkers.size === 0) {
+    clearSelectionUi();
+    return;
+  }
+
+  const fallback = [...arController.getMarkers()].reverse().find((marker) => activeMarkers.has(marker.markerId));
+  if (!fallback) {
+    clearSelectionUi();
+    return;
+  }
+
+  try {
+    const modelPackage = await packageLoader.loadPackage(fallback.packageId);
+    selectedMarker = fallback;
+    selectedPackage = modelPackage;
+    requireUi().setCurrentPackage(modelPackage);
+    requireUi().showInfoPanel(modelPackage);
+    configureScaleFromPackage(modelPackage, arRenderer.getMarkerScale(fallback.markerId));
+    requireUi().setAnimationAvailable(arRenderer.isMarkerAnimationPlaying(fallback.markerId) || arRenderer.hasVisibleAnimation());
+    requireUi().setAnimationPlaying(arRenderer.isMarkerAnimationPlaying(fallback.markerId));
+  } catch (error) {
+    state.setError("選択中モデルを切り替えられませんでした", error);
+  }
+}
+
+function clearSelectionUi(): void {
+  selectedMarker = null;
+  selectedPackage = null;
+  requireUi().setCurrentPackage(null);
+  requireUi().hideInfoPanel();
+  requireUi().setAnimationAvailable(false);
+  requireUi().setAnimationPlaying(false);
+  requireUi().setScaleAvailable(false);
 }
 
 function resolveLostTimeout(value: number | undefined): number {
@@ -389,8 +433,12 @@ function captureStill(): void {
 }
 
 function toggleAnimation(): void {
-  const next = !requireUi().isAnimationPlaying();
-  arRenderer.setAnimationPlaying(next);
+  if (!selectedMarker) {
+    return;
+  }
+  const markerId = selectedMarker.markerId;
+  const next = !arRenderer.isMarkerAnimationPlaying(markerId);
+  arRenderer.setMarkerAnimationPlaying(markerId, next);
   requireUi().setAnimationPlaying(next);
 }
 
@@ -418,15 +466,15 @@ function hideSelectedModel(): void {
   requireUi().addLog?.(`選択中モデルを非表示にしました: ${markerId}`);
 
   if (activeMarkers.size === 0) {
-    currentPackage = null;
-    selectedMarker = null;
-    selectedPackage = null;
-    requireUi().setCurrentPackage(null);
-    requireUi().hideInfoPanel();
-    requireUi().setAnimationAvailable(false);
-    requireUi().setScaleAvailable(false);
+    clearSelectionUi();
     state.setStatus("READY");
+  } else {
+    void selectFallbackMarker();
   }
+}
+
+function restoreTrackingStatus(): void {
+  state.setStatus(activeMarkers.size > 0 ? "TRACKING" : "READY");
 }
 
 function requireUi(): AppUiController {

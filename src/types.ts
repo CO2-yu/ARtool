@@ -42,6 +42,11 @@ export interface ArTuningConfig {
   labelingMode?: "black_region" | "white_region";
   thresholdMode?: "default" | "manual" | "auto_median" | "auto_otsu" | "auto_adaptive" | "auto_bracketing";
   threshold?: number;
+  minConfidence?: number;
+  smooth?: boolean;
+  smoothCount?: number;
+  smoothTolerance?: number;
+  smoothThreshold?: number;
 }
 
 export interface PackageIndex {
@@ -137,6 +142,8 @@ export interface MarkerModelInstance {
   markerId: string;
   packageId: string;
   root: Object3D;
+  baseScale: Vector3Tuple;
+  userScale: number;
   hasAnimation: boolean;
 }
 

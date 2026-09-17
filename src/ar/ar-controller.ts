@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { THREEx } from "@ar-js-org/ar.js-threejs";
 import type { ArTuningConfig, MarkerDefinition, MarkerRuntime } from "../types";
+import { appUrl } from "../utils/app-url";
 
 export class ArController {
   private source: any = null;
@@ -36,7 +37,7 @@ export class ArController {
     this.attachVideoElement();
 
     this.context = new THREEx.ArToolkitContext({
-      cameraParametersUrl: "data/camera_para.dat",
+      cameraParametersUrl: appUrl("data/camera_para.dat"),
       detectionMode: "mono",
       maxDetectionRate: this.tuning.maxDetectionRate ?? 45,
       canvasWidth,
@@ -68,6 +69,12 @@ export class ArController {
       throw new Error("AR controller is not initialized.");
     }
 
+    const minConfidence = clamp(this.tuning.minConfidence ?? 0.6, 0, 1);
+    const smooth = this.tuning.smooth ?? false;
+    const smoothCount = Math.max(1, Math.round(this.tuning.smoothCount ?? 5));
+    const smoothTolerance = Math.max(0, this.tuning.smoothTolerance ?? 0.01);
+    const smoothThreshold = Math.max(1, Math.round(this.tuning.smoothThreshold ?? 2));
+
     for (const definition of definitions) {
       if (this.markers.has(definition.markerId)) {
         continue;
@@ -88,6 +95,11 @@ export class ArController {
         type: "pattern",
         patternUrl: definition.patternUrl,
         size: 1,
+        minConfidence,
+        smooth,
+        smoothCount,
+        smoothTolerance,
+        smoothThreshold,
       });
 
       const marker: MarkerRuntime = {
@@ -125,7 +137,6 @@ export class ArController {
   layoutFullViewport(): void {
     this.applyCoverStyle(this.source?.domElement ?? null, 0);
     this.applyCoverStyle(this.rendererElement, 1);
-
     this.verifyViewportSync();
   }
 
@@ -172,9 +183,6 @@ export class ArController {
     const videoRect = video?.getBoundingClientRect();
 
     const warnings: string[] = [];
-    // AR.js uses this internal canvas for marker detection. Its buffer size is
-    // allowed to differ from the Three.js render buffer; forcing it to match can
-    // break marker recognition on mobile.
     if (Math.round(rendererRect.width) !== window.innerWidth || Math.round(rendererRect.height) !== window.innerHeight) {
       warnings.push(
         `renderer CSS ${Math.round(rendererRect.width)}x${Math.round(rendererRect.height)} != viewport ${window.innerWidth}x${window.innerHeight}`,
@@ -229,4 +237,8 @@ function thresholdModeValue(artoolkit: Record<string, number>, mode: NonNullable
   };
   const key = map[mode];
   return key ? artoolkit[key] : null;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }

@@ -5,7 +5,7 @@
     "title": "AR Product Viewer",
     "logoText": "AR",
     "maxActiveMarkers": 3,
-    "lostTimeoutMs": 800,
+    "lostTimeoutMs": 1200,
     "targetFps": 24,
     "packagesIndex": "packages/index.json",
     "ar": {
@@ -16,7 +16,12 @@
       "maxDetectionRate": 45,
       "patternRatio": 0.5,
       "labelingMode": "black_region",
-      "thresholdMode": "auto_otsu"
+      "thresholdMode": "auto_adaptive",
+      "minConfidence": 0.35,
+      "smooth": true,
+      "smoothCount": 3,
+      "smoothTolerance": 0.01,
+      "smoothThreshold": 1
     }
   },
   "ui": {
