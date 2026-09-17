@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "uiMode": "development",
+  "uiMode": "production",
   "app": {
     "title": "AR Product Viewer",
     "logoText": "AR",
@@ -25,8 +25,8 @@
     }
   },
   "ui": {
-    "cameraMessage": "カメラを許可してください",
-    "markerMessage": "マーカーをカメラに映してください",
+    "cameraMessage": "カメラへのアクセスを許可してください",
+    "markerMessage": "枠の中にマーカーを映してください",
     "loadingMessage": "読み込み中",
     "errorMessage": "表示できませんでした",
     "enablePinchScale": true
