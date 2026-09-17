@@ -97,6 +97,12 @@ class InternalModelViewer {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setClearColor(0x181a1a, 1);
     this.renderer.domElement.className = "internal-viewer-canvas";
+    Object.assign(this.renderer.domElement.style, {
+      display: "block",
+      width: "100%",
+      height: "100%",
+      touchAction: "none",
+    });
     this.container.appendChild(this.renderer.domElement);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
