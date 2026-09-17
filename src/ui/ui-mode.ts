@@ -38,7 +38,7 @@ export interface AppUiController {
 }
 
 export function resolveUiMode(config: AppConfig): UiMode {
-  return config.uiMode === "production" ? "production" : "development";
+  return config.uiMode === "development" ? "development" : "production";
 }
 
 export function createAppUi(
@@ -47,8 +47,8 @@ export function createAppUi(
   callbacks: UiCallbacks,
   debugEnabled: boolean,
 ): AppUiController {
-  if (mode === "production") {
-    return new ProductionUi(root, callbacks, debugEnabled);
+  if (mode === "development") {
+    return new DevelopmentUi(root, callbacks);
   }
-  return new DevelopmentUi(root, callbacks);
+  return new ProductionUi(root, callbacks, debugEnabled);
 }
